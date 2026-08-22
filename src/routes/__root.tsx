@@ -8,6 +8,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TooltipProvider } from "@/components/ui/tooltip.tsx";
 import TanStackQueryDevtools from "@/integrations/tanstack-query/devtools.tsx";
+import { APP_NAME } from "@/lib/app.ts";
 import appCss from "../styles.css?url";
 
 interface MyRouterContext {
@@ -19,7 +20,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		meta: [
 			{ charSet: "utf-8" },
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
-			{ title: "ConnectFlow" },
+			{ title: APP_NAME },
 		],
 		links: [{ rel: "stylesheet", href: appCss }],
 	}),

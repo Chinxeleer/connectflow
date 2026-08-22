@@ -10,10 +10,11 @@ import {
 	user,
 	verification,
 } from "@/db/schema/auth.ts";
+import { APP_NAME } from "./app.ts";
 import { ac, roles } from "./permissions-ac.ts";
 
 export const auth = betterAuth({
-	appName: "ConnectFlow",
+	appName: APP_NAME,
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schema: { user, session, account, verification, rateLimit },

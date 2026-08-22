@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Waypoints } from "lucide-react";
 import type { ReactNode } from "react";
+import { APP_NAME } from "@/lib/app.ts";
 
 const highlights = [
 	"Intake straight from the sign-up form",
@@ -22,7 +23,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 						<div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
 							<Waypoints className="size-4" />
 						</div>
-						ConnectFlow
+						{APP_NAME}
 					</Link>
 				</div>
 				<div className="flex flex-1 items-center justify-center">

@@ -3,6 +3,10 @@
 Connect-group management for a church: track members, the leaders they sit
 under, and their journey from first contact through induction.
 
+The project is `connectflow`; the app presents itself to users as **ENC Wits**.
+That display name lives in `src/lib/app.ts` — change it there and it changes
+everywhere it appears.
+
 A **connect** is a small group. A **member** who has people sitting under them
 *is* a connect leader — there is no separate leaders table. The whole structure
 is one self-referencing tree.

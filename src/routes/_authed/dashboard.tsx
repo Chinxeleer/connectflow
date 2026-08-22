@@ -11,6 +11,7 @@ import {
 	SectionCards,
 	userStatsQueryOptions,
 } from "@/features/users/stats/index.ts";
+import { APP_NAME } from "@/lib/app.ts";
 import { isAdmin } from "@/lib/permissions.ts";
 
 export const Route = createFileRoute("/_authed/dashboard")({
@@ -58,7 +59,7 @@ function Dashboard() {
 								<div className="px-4 lg:px-6">
 									<h2 className="mb-1 text-base font-medium">Users</h2>
 									<p className="mb-4 text-sm text-muted-foreground">
-										Everyone with access to ConnectFlow.
+										Everyone with access to {APP_NAME}.
 									</p>
 									<Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
 										<UsersTable />

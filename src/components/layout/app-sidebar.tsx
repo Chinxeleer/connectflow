@@ -20,6 +20,7 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar.tsx";
+import { APP_NAME } from "@/lib/app.ts";
 import { NavUser } from "./nav-user.tsx";
 
 /**
@@ -57,7 +58,7 @@ export function AppSidebar({
 						>
 							<Link to="/dashboard">
 								<Waypoints className="!size-5" />
-								<span className="text-base font-semibold">ConnectFlow</span>
+								<span className="text-base font-semibold">{APP_NAME}</span>
 							</Link>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
