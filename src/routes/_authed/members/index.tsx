@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Upload, UserPlus } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Suspense, useState } from "react";
 import { SiteHeader } from "@/components/layout/site-header.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -9,6 +9,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { CreateMemberDialog } from "@/features/members/create-member/index.ts";
 import { ImportCsvForm } from "@/features/members/import-csv/index.ts";
 import {
 	MembersTable,
@@ -69,10 +70,8 @@ function MembersPage() {
 				actions={
 					<>
 						{admin ? <ImportCsvDialog /> : null}
-						<Button size="sm" disabled title="Not built yet">
-							<UserPlus className="size-4" />
-							Add Member
-						</Button>
+						{/* Leaders may add too — their member lands on their own connect. */}
+						<CreateMemberDialog canChooseLeader={admin} />
 					</>
 				}
 			/>

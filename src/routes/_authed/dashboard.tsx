@@ -2,6 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { SiteHeader } from "@/components/layout/site-header.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import {
+	ConnectLeadersTable,
+	connectLeadersQueryOptions,
+} from "@/features/members/leader-summary/index.ts";
 import { CreateUserDialog } from "@/features/users/create-user/index.ts";
 import {
 	UsersTable,
@@ -16,8 +20,11 @@ import { isAdmin } from "@/lib/permissions.ts";
 
 export const Route = createFileRoute("/_authed/dashboard")({
 	loader: ({ context }) => {
-		// Only admins can read these, so only they are worth prefetching. Not
-		// awaited: the route renders immediately and Suspense fills them in.
+		// Not awaited: the route renders immediately and Suspense fills these in.
+		// The leaders list is scoped server-side, so everyone gets it.
+		void context.queryClient.prefetchQuery(connectLeadersQueryOptions);
+
+		// The user tables are admin-only reads, so only they are worth fetching.
 		if (isAdmin(context.session.user)) {
 			void context.queryClient.prefetchQuery(userStatsQueryOptions);
 			void context.queryClient.prefetchQuery(usersQueryOptions);
@@ -51,32 +58,34 @@ function Dashboard() {
 				<div className="@container/main flex flex-1 flex-col gap-2">
 					<div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 						{admin ? (
-							<>
-								<Suspense fallback={<CardsSkeleton />}>
-									<SectionCards />
-								</Suspense>
+							<Suspense fallback={<CardsSkeleton />}>
+								<SectionCards />
+							</Suspense>
+						) : null}
 
-								<div className="px-4 lg:px-6">
-									<h2 className="mb-1 text-base font-medium">Users</h2>
-									<p className="mb-4 text-sm text-muted-foreground">
-										Everyone with access to {APP_NAME}.
-									</p>
-									<Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
-										<UsersTable />
-									</Suspense>
-								</div>
-							</>
-						) : (
+						<div className="px-4 lg:px-6">
+							<h2 className="mb-1 text-base font-medium">Connect leaders</h2>
+							<p className="text-muted-foreground mb-4 text-sm">
+								{admin
+									? "Everyone leading a connect, and how many members they carry directly."
+									: "Your connect, and any leaders under you, with the members each carries directly."}
+							</p>
+							<Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
+								<ConnectLeadersTable />
+							</Suspense>
+						</div>
+
+						{admin ? (
 							<div className="px-4 lg:px-6">
-								<h2 className="text-base font-medium">
-									Welcome, {session.user.name}
-								</h2>
-								<p className="mt-1 text-sm text-muted-foreground">
-									Your assigned members and group capacity will appear here once
-									those sections are built.
+								<h2 className="mb-1 text-base font-medium">Users</h2>
+								<p className="text-muted-foreground mb-4 text-sm">
+									Everyone with access to {APP_NAME}.
 								</p>
+								<Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
+									<UsersTable />
+								</Suspense>
 							</div>
-						)}
+						) : null}
 					</div>
 				</div>
 			</div>

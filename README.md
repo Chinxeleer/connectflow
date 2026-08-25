@@ -105,8 +105,14 @@ That link is what scopes what they can see.
 |---|---|---|
 | Members table | everyone | only members directly under them |
 | Stats cards | whole system | scoped to their own group |
+| Connect leaders (dashboard) | every leader | themselves and any sub-leaders |
+| Add a member | anyone, to any connect | only onto their own connect |
 | Import CSV | yes | button hidden |
 | Delete a member | yes | no |
+
+When a leader adds a member, the connect leader is decided on the server from
+their own account — the `leaderId` in the request is discarded, so editing it
+cannot attach someone to another leader's group.
 
 Scoping is **not recursive** — a leader sees the people directly under them, not
 their sub-leaders' people. A leader account with no linked member row sees

@@ -35,6 +35,8 @@ pnpm test:watch       # vitest
 
 Tests are **Vitest**. `*.test.ts` are pure and always run; `*.integration.test.ts` hit the real `DATABASE_URL` and skip when it is unset. Integration tests namespace their fixtures and tear them down — they run against the dev database, so they must never leave rows behind.
 
+The database describes carry `{ retry: 2 }`: Neon drops a WebSocket now and then, which failed roughly one run in four. That retry is for transport flakiness only — never add one to a pure test to make it settle down.
+
 TypeScript has no `typecheck` script; run `pnpm exec tsc --noEmit` to type-check.
 
 ## Architecture

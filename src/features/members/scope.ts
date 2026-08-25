@@ -1,4 +1,4 @@
-import { eq, inArray, type SQL, sql } from "drizzle-orm";
+import { eq, inArray, or, type SQL, sql } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
 import { type Actor, isAdmin, requireActor } from "@/lib/permissions.ts";
@@ -41,6 +41,24 @@ export function memberScopeWhere(scope: MemberScope): SQL | undefined {
 	if (scope.kind === "all") return undefined;
 	if (scope.memberIds.length === 0) return matchesNothing();
 	return inArray(members.leaderId, scope.memberIds);
+}
+
+/**
+ * Like `memberScopeWhere`, but also matches the actor's *own* member rows.
+ *
+ * The members table asks "who is under me", so a leader should not see their
+ * own row there. A leaders list asks "who leads a connect", where excluding
+ * the person reading it would be nonsense. Everything matched is still inside
+ * their own subtree, so nothing new is exposed.
+ */
+export function memberScopeWithSelfWhere(scope: MemberScope): SQL | undefined {
+	if (scope.kind === "all") return undefined;
+	if (scope.memberIds.length === 0) return matchesNothing();
+
+	return or(
+		inArray(members.leaderId, scope.memberIds),
+		inArray(members.id, scope.memberIds),
+	) as SQL;
 }
 
 /**

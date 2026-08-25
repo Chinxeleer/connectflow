@@ -47,6 +47,10 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
 
 	return (
 		<form
+			// Submitted before hydration, a default GET form puts the password in
+			// the query string and the browser's history. POST keeps it in the
+			// body; the React handler still preventDefaults once hydrated.
+			method="post"
 			className="flex flex-col gap-6"
 			onSubmit={(event) => {
 				event.preventDefault();
