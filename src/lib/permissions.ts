@@ -40,11 +40,18 @@ export class UnauthenticatedError extends Error {
 const ADMIN: UserRole = "admin";
 const LEADER: UserRole = "leader";
 
-export function isAdmin(actor: Actor | null | undefined): boolean {
+/**
+ * Anything carrying a role. Narrower than `Actor` on purpose: these two only
+ * read the role, so they also work where no id is to hand — the sidebar, for
+ * instance, which knows who is signed in but not their user id.
+ */
+type HasRole = Pick<Actor, "role">;
+
+export function isAdmin(actor: HasRole | null | undefined): boolean {
 	return actor?.role === ADMIN;
 }
 
-export function isLeader(actor: Actor | null | undefined): boolean {
+export function isLeader(actor: HasRole | null | undefined): boolean {
 	return actor?.role === LEADER;
 }
 

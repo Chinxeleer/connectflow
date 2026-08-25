@@ -4,6 +4,7 @@ import {
 	ClipboardList,
 	LayoutDashboard,
 	Settings,
+	ShieldCheck,
 	UsersRound,
 	Waypoints,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import {
 	SidebarMenuItem,
 } from "@/components/ui/sidebar.tsx";
 import { APP_NAME } from "@/lib/app.ts";
+import { isAdmin } from "@/lib/permissions.ts";
 import { NavUser } from "./nav-user.tsx";
 
 /**
@@ -30,6 +32,9 @@ const navMain = [
 	{ title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
 	{ title: "Members", to: "/members", icon: UsersRound },
 ] as const;
+
+/** Routes only an admin may open; the pages behind them reject leaders. */
+const navAdmin = [{ title: "Users", to: "/users", icon: ShieldCheck }] as const;
 
 /**
  * The rest of the product per the spec. Rendered disabled rather than as links,
@@ -79,6 +84,21 @@ export function AppSidebar({
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
+							{isAdmin(user)
+								? navAdmin.map((item) => (
+										<SidebarMenuItem key={item.title}>
+											<SidebarMenuButton asChild tooltip={item.title}>
+												<Link
+													to={item.to}
+													activeProps={{ "data-active": true }}
+												>
+													<item.icon />
+													<span>{item.title}</span>
+												</Link>
+											</SidebarMenuButton>
+										</SidebarMenuItem>
+									))
+								: null}
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>

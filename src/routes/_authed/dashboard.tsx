@@ -6,16 +6,10 @@ import {
 	ConnectLeadersTable,
 	connectLeadersQueryOptions,
 } from "@/features/members/leader-summary/index.ts";
-import { CreateUserDialog } from "@/features/users/create-user/index.ts";
-import {
-	UsersTable,
-	usersQueryOptions,
-} from "@/features/users/list-users/index.ts";
 import {
 	SectionCards,
 	userStatsQueryOptions,
 } from "@/features/users/stats/index.ts";
-import { APP_NAME } from "@/lib/app.ts";
 import { isAdmin } from "@/lib/permissions.ts";
 
 export const Route = createFileRoute("/_authed/dashboard")({
@@ -24,10 +18,10 @@ export const Route = createFileRoute("/_authed/dashboard")({
 		// The leaders list is scoped server-side, so everyone gets it.
 		void context.queryClient.prefetchQuery(connectLeadersQueryOptions);
 
-		// The user tables are admin-only reads, so only they are worth fetching.
+		// Account stats are an admin-only read. The user list itself lives on
+		// /users now, and is fetched there.
 		if (isAdmin(context.session.user)) {
 			void context.queryClient.prefetchQuery(userStatsQueryOptions);
-			void context.queryClient.prefetchQuery(usersQueryOptions);
 		}
 	},
 	component: Dashboard,
@@ -49,10 +43,7 @@ function Dashboard() {
 
 	return (
 		<>
-			<SiteHeader
-				title="Dashboard"
-				actions={admin ? <CreateUserDialog /> : null}
-			/>
+			<SiteHeader title="Dashboard" />
 
 			<div className="flex flex-1 flex-col">
 				<div className="@container/main flex flex-1 flex-col gap-2">
@@ -74,18 +65,6 @@ function Dashboard() {
 								<ConnectLeadersTable />
 							</Suspense>
 						</div>
-
-						{admin ? (
-							<div className="px-4 lg:px-6">
-								<h2 className="mb-1 text-base font-medium">Users</h2>
-								<p className="text-muted-foreground mb-4 text-sm">
-									Everyone with access to {APP_NAME}.
-								</p>
-								<Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
-									<UsersTable />
-								</Suspense>
-							</div>
-						) : null}
 					</div>
 				</div>
 			</div>

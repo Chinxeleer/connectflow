@@ -192,7 +192,8 @@ src/
 │   ├── _authed.tsx      # auth guard + dashboard shell (sidebar, inset)
 │   ├── _authed/
 │   │   ├── dashboard.tsx
-│   │   └── members/
+│   │   ├── members/
+│   │   └── users/       # admin-only; redirects a leader to the dashboard
 │   └── api/auth/$.ts    # better-auth handler
 ├── features/            # business logic, one folder per user action
 │   ├── auth/sign-in/
