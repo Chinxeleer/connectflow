@@ -54,6 +54,9 @@ A leader named in the file with **no member row of their own** (the top of the t
 
 **Drizzle gotcha:** inside a raw ``sql`` `` template, `${members.id}` renders as a bare `"id"`, so a correlated subquery resolves it against *its own* table. Write `${members}.id` instead. This silently returned zero from a `count(*) filter (where exists ...)` until an integration test caught it.
 
+### Dashboard vs pages
+The dashboard answers "how are the connects doing" — `features/members/connect-overview` (members, unassigned, active connects, average size) over `features/members/leader-summary` (who leads what). Account statistics describe logins, not ministry, and live on `/users` with the account list.
+
 ### Dashboard shell
 `_authed.tsx` is both the auth guard and the layout: it renders `SidebarProvider` → `AppSidebar` → `SidebarInset` → `Outlet`, following the shadcn `dashboard-01` block. Pages nested below render their own `<SiteHeader title=... actions=... />` as their first element. Sidebar entries for sections that have no route yet are rendered disabled rather than as links, so nothing 404s.
 

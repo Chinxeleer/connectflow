@@ -3,26 +3,21 @@ import { Suspense } from "react";
 import { SiteHeader } from "@/components/layout/site-header.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
+	ConnectOverviewCards,
+	connectOverviewQueryOptions,
+} from "@/features/members/connect-overview/index.ts";
+import {
 	ConnectLeadersTable,
 	connectLeadersQueryOptions,
 } from "@/features/members/leader-summary/index.ts";
-import {
-	SectionCards,
-	userStatsQueryOptions,
-} from "@/features/users/stats/index.ts";
 import { isAdmin } from "@/lib/permissions.ts";
 
 export const Route = createFileRoute("/_authed/dashboard")({
 	loader: ({ context }) => {
 		// Not awaited: the route renders immediately and Suspense fills these in.
-		// The leaders list is scoped server-side, so everyone gets it.
+		// Both are scoped server-side, so everyone gets them.
+		void context.queryClient.prefetchQuery(connectOverviewQueryOptions);
 		void context.queryClient.prefetchQuery(connectLeadersQueryOptions);
-
-		// Account stats are an admin-only read. The user list itself lives on
-		// /users now, and is fetched there.
-		if (isAdmin(context.session.user)) {
-			void context.queryClient.prefetchQuery(userStatsQueryOptions);
-		}
 	},
 	component: Dashboard,
 });
@@ -48,11 +43,9 @@ function Dashboard() {
 			<div className="flex flex-1 flex-col">
 				<div className="@container/main flex flex-1 flex-col gap-2">
 					<div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-						{admin ? (
-							<Suspense fallback={<CardsSkeleton />}>
-								<SectionCards />
-							</Suspense>
-						) : null}
+						<Suspense fallback={<CardsSkeleton />}>
+							<ConnectOverviewCards />
+						</Suspense>
 
 						<div className="px-4 lg:px-6">
 							<h2 className="mb-1 text-base font-medium">Connect leaders</h2>

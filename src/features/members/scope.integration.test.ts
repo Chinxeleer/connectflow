@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
 import type { Actor } from "@/lib/permissions.ts";
+import { selectConnectOverview } from "./connect-overview/query.ts";
 import { selectConnectLeaders } from "./leader-summary/query.ts";
 import { selectMembers } from "./member-list/query.ts";
 import { selectMemberStats } from "./member-stats/query.ts";
@@ -230,6 +231,44 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			expect(
 				await selectConnectLeaders(memberScopeFor(leaderActor, [])),
 			).toEqual([]);
+		});
+
+		it("summarises the connect structure for an admin", async () => {
+			const overview = await selectConnectOverview({ kind: "all" });
+
+			expect(overview.totalMembers).toBeGreaterThanOrEqual(6);
+			expect(overview.withoutConnect).toBeGreaterThanOrEqual(3);
+			expect(overview.activeConnects).toBeGreaterThanOrEqual(2);
+			// Grace carries 2, so nothing smaller can be the largest.
+			expect(overview.largestConnect).toBeGreaterThanOrEqual(2);
+			expect(overview.membersInAConnect + overview.withoutConnect).toBe(
+				overview.totalMembers,
+			);
+		});
+
+		it("scopes the connect overview to a leader's own members", async () => {
+			const overview = await selectConnectOverview(
+				memberScopeFor(leaderActor, [graceId]),
+			);
+
+			// Ada and Alan: both in Grace's connect, neither leading one.
+			expect(overview.totalMembers).toBe(2);
+			expect(overview.membersInAConnect).toBe(2);
+			expect(overview.withoutConnect).toBe(0);
+			expect(overview.activeConnects).toBe(0);
+			expect(overview.largestConnect).toBe(0);
+		});
+
+		it("gives an unscoped leader a zeroed overview, not system-wide totals", async () => {
+			expect(
+				await selectConnectOverview(memberScopeFor(leaderActor, [])),
+			).toEqual({
+				totalMembers: 0,
+				withoutConnect: 0,
+				activeConnects: 0,
+				membersInAConnect: 0,
+				largestConnect: 0,
+			});
 		});
 
 		it("counts unassigned members and group leaders for an admin", async () => {
