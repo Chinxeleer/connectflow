@@ -3,9 +3,11 @@ import {
 	type ColumnDef,
 	columnFilteringFeature,
 	createFilteredRowModel,
+	createPaginatedRowModel,
 	createSortedRowModel,
 	filterFn_includesString,
 	globalFilteringFeature,
+	rowPaginationFeature,
 	rowSortingFeature,
 	type SortingState,
 	sortFn_alphanumeric,
@@ -16,6 +18,10 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { useState } from "react";
+import {
+	DataTablePagination,
+	DEFAULT_PAGE_SIZE,
+} from "@/components/shared/data-table-pagination.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -35,11 +41,13 @@ import type { UserListRow } from "./query.ts";
  * only the features this table actually uses are pulled into the bundle.
  */
 const features = tableFeatures({
+	rowPaginationFeature,
 	rowSortingFeature,
 	columnFilteringFeature,
 	globalFilteringFeature,
 	sortedRowModel: createSortedRowModel(),
 	filteredRowModel: createFilteredRowModel(),
+	paginatedRowModel: createPaginatedRowModel(),
 	sortFns: {
 		alphanumeric: sortFn_alphanumeric,
 		text: sortFn_text,
@@ -95,24 +103,33 @@ export function UsersTable() {
 	const { data } = useSuspenseQuery(usersQueryOptions);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
+	const [pagination, setPagination] = useState({
+		pageIndex: 0,
+		pageSize: DEFAULT_PAGE_SIZE,
+	});
 
 	const table = useTable({
 		features,
 		columns,
 		data,
-		state: { sorting, globalFilter },
+		state: { sorting, globalFilter, pagination },
 		onSortingChange: setSorting,
 		onGlobalFilterChange: setGlobalFilter,
+		onPaginationChange: setPagination,
 		globalFilterFn: "includesString",
 	});
 
 	const rows = table.getRowModel().rows;
+	const filteredCount = table.getFilteredRowModel().rows.length;
 
 	return (
 		<div className="flex flex-col gap-4">
 			<Input
 				value={globalFilter}
-				onChange={(event) => setGlobalFilter(event.target.value)}
+				onChange={(event) => {
+					setGlobalFilter(event.target.value);
+					setPagination((current) => ({ ...current, pageIndex: 0 }));
+				}}
 				placeholder="Filter by name, email or role…"
 				className="max-w-sm"
 				aria-label="Filter users"
@@ -165,6 +182,23 @@ export function UsersTable() {
 					</TableBody>
 				</Table>
 			</div>
+
+			<DataTablePagination
+				pageIndex={pagination.pageIndex}
+				pageSize={pagination.pageSize}
+				pageCount={table.getPageCount()}
+				filteredRows={filteredCount}
+				totalRows={data.length}
+				noun="users"
+				onPageChange={(pageIndex) =>
+					setPagination((current) => ({ ...current, pageIndex }))
+				}
+				onPageSizeChange={(pageSize) =>
+					// Back to the first page: page 7 of a 10-row view does not
+					// exist once the page size becomes 100.
+					setPagination({ pageIndex: 0, pageSize })
+				}
+			/>
 		</div>
 	);
 }

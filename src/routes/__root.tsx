@@ -36,7 +36,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<TooltipProvider>{children}</TooltipProvider>
 				<TanStackDevtools
-					config={{ position: "bottom-right" }}
+					config={{
+						position: "bottom-right",
+						// The bubble sits exactly over the tables' pagination
+						// controls; fading it until hover keeps those clickable.
+						hideUntilHover: true,
+					}}
 					plugins={[
 						{
 							name: "Tanstack Router",

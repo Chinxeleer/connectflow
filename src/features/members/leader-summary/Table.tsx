@@ -3,9 +3,11 @@ import {
 	type ColumnDef,
 	columnFilteringFeature,
 	createFilteredRowModel,
+	createPaginatedRowModel,
 	createSortedRowModel,
 	filterFn_includesString,
 	globalFilteringFeature,
+	rowPaginationFeature,
 	rowSortingFeature,
 	type SortingState,
 	sortFn_alphanumeric,
@@ -16,6 +18,10 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { useState } from "react";
+import {
+	DataTablePagination,
+	DEFAULT_PAGE_SIZE,
+} from "@/components/shared/data-table-pagination.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -31,11 +37,13 @@ import { connectLeadersQueryOptions } from "./action.ts";
 import type { ConnectLeaderRow } from "./query.ts";
 
 const features = tableFeatures({
+	rowPaginationFeature,
 	rowSortingFeature,
 	columnFilteringFeature,
 	globalFilteringFeature,
 	sortedRowModel: createSortedRowModel(),
 	filteredRowModel: createFilteredRowModel(),
+	paginatedRowModel: createPaginatedRowModel(),
 	sortFns: {
 		alphanumeric: sortFn_alphanumeric,
 		basic: sortFn_basic,
@@ -81,18 +89,24 @@ export function ConnectLeadersTable() {
 	const { data } = useSuspenseQuery(connectLeadersQueryOptions);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
+	const [pagination, setPagination] = useState({
+		pageIndex: 0,
+		pageSize: DEFAULT_PAGE_SIZE,
+	});
 
 	const table = useTable({
 		features,
 		columns,
 		data,
-		state: { sorting, globalFilter },
+		state: { sorting, globalFilter, pagination },
 		onSortingChange: setSorting,
 		onGlobalFilterChange: setGlobalFilter,
+		onPaginationChange: setPagination,
 		globalFilterFn: "includesString",
 	});
 
 	const rows = table.getRowModel().rows;
+	const filteredCount = table.getFilteredRowModel().rows.length;
 	const totalLed = data.reduce((sum, row) => sum + row.directMembers, 0);
 
 	return (
@@ -100,7 +114,10 @@ export function ConnectLeadersTable() {
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				<Input
 					value={globalFilter}
-					onChange={(event) => setGlobalFilter(event.target.value)}
+					onChange={(event) => {
+						setGlobalFilter(event.target.value);
+						setPagination((current) => ({ ...current, pageIndex: 0 }));
+					}}
 					placeholder="Filter leaders…"
 					className="max-w-sm"
 					aria-label="Filter connect leaders"
@@ -170,6 +187,23 @@ export function ConnectLeadersTable() {
 					</TableBody>
 				</Table>
 			</div>
+
+			<DataTablePagination
+				pageIndex={pagination.pageIndex}
+				pageSize={pagination.pageSize}
+				pageCount={table.getPageCount()}
+				filteredRows={filteredCount}
+				totalRows={data.length}
+				noun="leaders"
+				onPageChange={(pageIndex) =>
+					setPagination((current) => ({ ...current, pageIndex }))
+				}
+				onPageSizeChange={(pageSize) =>
+					// Back to the first page: page 7 of a 10-row view does not
+					// exist once the page size becomes 100.
+					setPagination({ pageIndex: 0, pageSize })
+				}
+			/>
 		</div>
 	);
 }
