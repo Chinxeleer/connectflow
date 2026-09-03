@@ -1,4 +1,4 @@
-import { eq, inArray, or, type SQL, sql } from "drizzle-orm";
+import { eq, inArray, isNull, or, type SQL, sql } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
 import { type Actor, isAdmin, requireActor } from "@/lib/permissions.ts";
@@ -87,4 +87,124 @@ export async function resolveMemberScope(
 	if (isAdmin(current)) return { kind: "all" };
 
 	return memberScopeFor(current, await linkedMemberIdsFor(current.id));
+}
+
+/* -------------------------------------------------------------------------
+ * Walking the tree
+ *
+ * Everything above answers "who reports directly to me", which is what the
+ * members list and the stats cards ask. The hierarchy page and the member
+ * profile ask a different question — "who is anywhere below me" — and that one
+ * is recursive. Both rules live here so there is still exactly one file that
+ * decides what an account can reach.
+ *
+ * Seeing someone is not the same as being able to change them: the recursive
+ * rule governs *viewing* only. Editing stays direct reports and yourself, and
+ * that decision lives in `update-member-profile/guard.ts`.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * How far a hierarchy walk goes, in either direction.
+ *
+ * A connect structure is roughly church -> zone -> cell -> member, so ten is
+ * generous headroom. It is a cost bound, not the safety net: the cycle guards
+ * below are what guarantee a walk terminates. It also bounds how deep the tree
+ * component recurses, so keep the two single-sourced from here.
+ */
+export const MAX_HIERARCHY_DEPTH = 10;
+
+/** Anything that can run a query — the `db` singleton, or an open transaction. */
+type Executor = Pick<typeof db, "execute">;
+
+/**
+ * Where a downward walk starts.
+ *
+ * Deliberately *not* the `undefined` means "no filter" convention used by
+ * `memberScopeWhere`: an admin's tree is anchored on the members who have no
+ * leader, which is a real predicate, not the absence of one. Returning
+ * `undefined` here would read as "start from every row" and render the whole
+ * table as roots.
+ */
+export function hierarchyRootsWhere(scope: MemberScope): SQL {
+	if (scope.kind === "all") return isNull(members.leaderId);
+	if (scope.memberIds.length === 0) return matchesNothing();
+
+	return inArray(members.id, scope.memberIds);
+}
+
+/**
+ * May this scope open that member's profile at all?
+ *
+ * Pure, so the rule can be tested without a database: `ancestorIds` is the
+ * member's leader chain, which `ancestorMemberIdsFor` fetches.
+ *
+ * A leader with no linked member row reaches nobody — the same fail-closed
+ * answer their member list gives, and the one mistake here that would matter.
+ */
+export function inDownlineOf(
+	scope: MemberScope,
+	memberId: string,
+	ancestorIds: ReadonlyArray<string>,
+): boolean {
+	if (scope.kind === "all") return true;
+	if (scope.memberIds.length === 0) return false;
+	if (scope.memberIds.includes(memberId)) return true;
+
+	return ancestorIds.some((id) => scope.memberIds.includes(id));
+}
+
+/**
+ * The leaders above a member, nearest first, excluding the member themselves.
+ *
+ * Walks *up* rather than materialising a subtree: `leaderId` is single-valued,
+ * so this is one row per level — bounded by `MAX_HIERARCHY_DEPTH` — where the
+ * downward equivalent would fetch everyone below the caller just to answer a
+ * yes/no question about one member.
+ *
+ * `up.id <> all(chain.path)` is the cycle guard. `leaderId` is only protected
+ * by a `restrict` foreign key, which prevents deletion, not a loop: both
+ * `A -> A` and `A -> B -> A` are storable, and without the guard this recurses
+ * forever instead of returning.
+ */
+export async function ancestorMemberIdsFor(
+	memberId: string,
+	executor: Executor = db,
+): Promise<string[]> {
+	const result = await executor.execute<{ id: string }>(sql`
+		with recursive chain as (
+			select id, leader_id, 1 as depth, array[id] as path
+			from ${members}
+			where id = ${memberId}
+
+			union all
+
+			select up.id, up.leader_id, chain.depth + 1, chain.path || up.id
+			from ${members} as up
+			join chain on chain.leader_id = up.id
+			where chain.depth < ${MAX_HIERARCHY_DEPTH}
+			  and up.id <> all(chain.path)
+		)
+		select id from chain where id <> ${memberId} order by depth asc
+	`);
+
+	return result.rows.map((row) => row.id);
+}
+
+/**
+ * Would moving `memberId` under `newLeaderId` close a loop?
+ *
+ * True when the proposed leader is the member themselves, or already sits
+ * below them — reparenting is the only way a human can create a cycle, so it
+ * is the place to refuse one.
+ */
+export async function wouldLoopTheTree(
+	memberId: string,
+	newLeaderId: string,
+	executor: Executor = db,
+): Promise<boolean> {
+	if (memberId === newLeaderId) return true;
+
+	const ancestors = await ancestorMemberIdsFor(newLeaderId, executor);
+
+	return ancestors.includes(memberId);
 }

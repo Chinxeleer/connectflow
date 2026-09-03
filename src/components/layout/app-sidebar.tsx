@@ -3,6 +3,7 @@ import {
 	CalendarCheck,
 	ClipboardList,
 	LayoutDashboard,
+	Network,
 	Settings,
 	ShieldCheck,
 	UsersRound,
@@ -31,6 +32,7 @@ import { NavUser } from "./nav-user.tsx";
 const navMain = [
 	{ title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
 	{ title: "Members", to: "/members", icon: UsersRound },
+	{ title: "Hierarchy", to: "/hierarchy", icon: Network },
 ] as const;
 
 /** Routes only an admin may open; the pages behind them reject leaders. */

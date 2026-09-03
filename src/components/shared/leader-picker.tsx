@@ -21,8 +21,9 @@ import { cn } from "@/lib/utils.ts";
 const UNASSIGNED = "__unassigned__";
 
 /**
- * Searchable connect-leader picker. Only admins see this — a leader's new
- * member always goes onto their own connect, decided server-side.
+ * Searchable connect-leader picker, shared by the add-member dialog and the
+ * profile editor. Only admins see it — a leader's new member always goes onto
+ * their own connect, and reassignment is admin-only, both decided server-side.
  *
  * Options come from the members list, which is already scoped and cached, so
  * this needs no endpoint of its own.
@@ -31,15 +32,21 @@ export function LeaderPicker({
 	value,
 	onChange,
 	id,
+	excludeId,
 }: {
 	value: string | null;
 	onChange: (leaderId: string | null) => void;
 	id?: string;
+	/**
+	 * A member who must not appear as their own leader. Convenience only — the
+	 * schema rejects it and the server refuses any loop regardless.
+	 */
+	excludeId?: string;
 }) {
 	const { data, isPending } = useQuery(membersQueryOptions);
 	const [open, setOpen] = useState(false);
 
-	const options = data ?? [];
+	const options = (data ?? []).filter((member) => member.id !== excludeId);
 	const selected = options.find((member) => member.id === value);
 
 	return (
@@ -49,7 +56,6 @@ export function LeaderPicker({
 					id={id}
 					type="button"
 					variant="outline"
-					// biome-ignore lint/a11y/useSemanticElements: combobox trigger
 					role="combobox"
 					aria-expanded={open}
 					className="w-full justify-between font-normal"

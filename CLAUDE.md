@@ -44,13 +44,22 @@ TypeScript has no `typecheck` script; run `pnpm exec tsc --noEmit` to type-check
 ### Members and scoping
 `members` is a single self-referencing table: a connect leader **is** a member, and `members.leaderId` points at another member row. The "Leader" badge in the members table means *tree position* (someone reports to you) — it is not the account's admin/leader access level.
 
-A leader's login account is tied to their member row by `members.userId`. That link is what scopes them: they see members whose `leaderId` is one of their own member rows, direct reports only (never recursive). **A leader with no linked member row sees nothing** — `features/members/scope.ts` is the single place that decides this, and it must never fall through to "no filter", which would show one leader the entire membership. Both `member-list/query.ts` and `member-stats/query.ts` apply that predicate in SQL; never fetch and filter in a component.
+A leader's login account is tied to their member row by `members.userId`. That link is what scopes them. **A leader with no linked member row sees nothing** — `features/members/scope.ts` is the single place that decides this, and it must never fall through to "no filter", which would show one leader the entire membership. Scoping is applied in SQL; never fetch and filter in a component.
+
+There are two scoping rules, and they answer different questions:
+
+- **Direct reports only** (`memberScopeWhere`, `memberScopeWithSelfWhere`) — the members list, the stats cards, the dashboard. Deliberately not recursive: a leader's member count must not roll up a sub-leader's people. `member-list/query.ts` and `member-stats/query.ts` apply it.
+- **Recursive downline** (`hierarchyRootsWhere`, `ancestorMemberIdsFor`, `inDownlineOf`) — the hierarchy tree and the member profile, where the whole point is the shape of the branch. A leader's walk is anchored on their own member rows and can never reach above or outside them.
+
+Seeing someone is not the same as changing them. A leader may *open* any profile in their downline, so no node the tree draws is a dead link, but may only *edit* themselves and their direct reports — `update-member-profile/guard.ts` decides that, and reassigning `leaderId` or changing `status` stays admin-only on every profile.
 
 Deleting a member who leads people is refused with a message telling the caller to reassign first — never cascaded, never orphaned. The `restrict` foreign key is the backstop.
 
 **CSV import** (`features/members/import-csv/`) reads the connect-database export: `Name and Surname Of Leader` / `Connect Members`, with the leader column forward-filled down each group. Two passes in one transaction — insert everyone unlinked, then resolve leader names.
 
 A leader named in the file with **no member row of their own** (the top of the tree) is *created* as a member, not rejected — a leader is a member, so there is only one reading — and is reported back in the result. Only a name matching **several** members is a genuine guess: that halts and rolls back the whole import, inserts included. Add new header spellings to `HEADER_ALIASES` in `parse-csv.ts`; `name` is matched before `leaderLabel` so "Connect Members" binds to the member column rather than the leader column's "connect" alias.
+
+**Cycles:** `members.leaderId` is guarded only by a `restrict` foreign key, which prevents *deletion*, not a loop — both `A -> A` and `A -> B -> A` are storable. Every recursive walk in `scope.ts` carries a path array and a depth cap (`MAX_HIERARCHY_DEPTH`), or it never terminates. A loop is unreachable from `leader_id is null`, so for an admin it shows up as *missing* members rather than a hang; the hierarchy page reports that as an "unreachable" count instead of swallowing it. Reassignment in `update-member-profile` refuses a leader who is the member or already below them, which is the only place a human can create one.
 
 **Drizzle gotcha:** inside a raw ``sql`` `` template, `${members.id}` renders as a bare `"id"`, so a correlated subquery resolves it against *its own* table. Write `${members}.id` instead. This silently returned zero from a `count(*) filter (where exists ...)` until an integration test caught it.
 

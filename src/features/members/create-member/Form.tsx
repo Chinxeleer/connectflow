@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { UserPlus } from "lucide-react";
 import { useState } from "react";
+import { LeaderPicker } from "@/components/shared/leader-picker.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
 	Dialog,
@@ -32,7 +33,6 @@ import { type MemberStatus, memberStatus } from "@/db/schema/members.ts";
 import { membersQueryOptions } from "@/features/members/member-list/action.ts";
 import { memberStatsQueryOptions } from "@/features/members/member-stats/action.ts";
 import { createMember } from "./action.ts";
-import { LeaderPicker } from "./LeaderPicker.tsx";
 import { createMemberInputSchema } from "./schema.ts";
 
 /** A plain text field; every one of these is optional and backfilled later. */

@@ -1,4 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
 	type ColumnDef,
 	columnFilteringFeature,
@@ -23,6 +24,7 @@ import {
 	DataTablePagination,
 	DEFAULT_PAGE_SIZE,
 } from "@/components/shared/data-table-pagination.tsx";
+import { MemberStatusBadge } from "@/components/shared/status-badge.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -55,14 +57,6 @@ const features = tableFeatures({
 	filterFns: { includesString: filterFn_includesString },
 });
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
-	new: "default",
-	contacted: "secondary",
-	assigned: "secondary",
-	inducted: "outline",
-	inactive: "outline",
-};
-
 function buildColumns(
 	canDelete: boolean,
 ): ColumnDef<typeof features, MemberListRow>[] {
@@ -72,7 +66,13 @@ function buildColumns(
 			header: "Name",
 			sortFn: "text",
 			cell: ({ row }) => (
-				<span className="font-medium">{row.original.name}</span>
+				<Link
+					to="/members/$memberId"
+					params={{ memberId: row.original.id }}
+					className="font-medium underline-offset-4 hover:underline"
+				>
+					{row.original.name}
+				</Link>
 			),
 		},
 		{
@@ -99,11 +99,7 @@ function buildColumns(
 			accessorKey: "status",
 			header: "Status",
 			sortFn: "text",
-			cell: ({ row }) => (
-				<Badge variant={STATUS_VARIANT[row.original.status] ?? "outline"}>
-					{row.original.status}
-				</Badge>
-			),
+			cell: ({ row }) => <MemberStatusBadge status={row.original.status} />,
 		},
 		{
 			accessorKey: "profileIncomplete",
@@ -126,11 +122,13 @@ function buildColumns(
 			cell: ({ row }) => (
 				<div className="flex items-center justify-end gap-1">
 					<Button variant="ghost" size="sm" asChild>
-						{/* View lands here until the member detail page ships. */}
-						<a href={`#member-${row.original.id}`}>
+						<Link
+							to="/members/$memberId"
+							params={{ memberId: row.original.id }}
+						>
 							<Eye className="size-4" />
 							<span className="sr-only sm:not-sr-only">View</span>
-						</a>
+						</Link>
 					</Button>
 					{canDelete ? <ConfirmDeleteMember member={row.original} /> : null}
 				</div>

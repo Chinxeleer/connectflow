@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AuthedHierarchyRouteImport } from './routes/_authed/hierarchy'
 import { Route as AuthedMembersIndexRouteImport } from './routes/_authed/members/index'
+import { Route as AuthedMembersMemberIdRouteImport } from './routes/_authed/members/$memberId'
 import { Route as AuthedUsersIndexRouteImport } from './routes/_authed/users/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -30,9 +32,19 @@ const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedHierarchyRoute = AuthedHierarchyRouteImport.update({
+  id: '/hierarchy',
+  path: '/hierarchy',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedMembersIndexRoute = AuthedMembersIndexRouteImport.update({
   id: '/members/',
   path: '/members/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedMembersMemberIdRoute = AuthedMembersMemberIdRouteImport.update({
+  id: '/members/$memberId',
+  path: '/members/$memberId',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedUsersIndexRoute = AuthedUsersIndexRouteImport.update({
@@ -49,6 +61,8 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/hierarchy': typeof AuthedHierarchyRoute
+  '/members/$memberId': typeof AuthedMembersMemberIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/members/': typeof AuthedMembersIndexRoute
   '/users/': typeof AuthedUsersIndexRoute
@@ -56,6 +70,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/hierarchy': typeof AuthedHierarchyRoute
+  '/members/$memberId': typeof AuthedMembersMemberIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/members': typeof AuthedMembersIndexRoute
   '/users': typeof AuthedUsersIndexRoute
@@ -65,20 +81,38 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/_authed/dashboard': typeof AuthedDashboardRoute
+  '/_authed/hierarchy': typeof AuthedHierarchyRoute
+  '/_authed/members/$memberId': typeof AuthedMembersMemberIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authed/members/': typeof AuthedMembersIndexRoute
   '/_authed/users/': typeof AuthedUsersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/api/auth/$' | '/members/' | '/users/'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/hierarchy'
+    | '/members/$memberId'
+    | '/api/auth/$'
+    | '/members/'
+    | '/users/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/api/auth/$' | '/members' | '/users'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/hierarchy'
+    | '/members/$memberId'
+    | '/api/auth/$'
+    | '/members'
+    | '/users'
   id:
     | '__root__'
     | '/'
     | '/_authed'
     | '/_authed/dashboard'
+    | '/_authed/hierarchy'
+    | '/_authed/members/$memberId'
     | '/api/auth/$'
     | '/_authed/members/'
     | '/_authed/users/'
@@ -113,11 +147,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedDashboardRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/hierarchy': {
+      id: '/_authed/hierarchy'
+      path: '/hierarchy'
+      fullPath: '/hierarchy'
+      preLoaderRoute: typeof AuthedHierarchyRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/members/': {
       id: '/_authed/members/'
       path: '/members'
       fullPath: '/members/'
       preLoaderRoute: typeof AuthedMembersIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/members/$memberId': {
+      id: '/_authed/members/$memberId'
+      path: '/members/$memberId'
+      fullPath: '/members/$memberId'
+      preLoaderRoute: typeof AuthedMembersMemberIdRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/users/': {
@@ -139,12 +187,16 @@ declare module '@tanstack/react-router' {
 
 interface AuthedRouteChildren {
   AuthedDashboardRoute: typeof AuthedDashboardRoute
+  AuthedHierarchyRoute: typeof AuthedHierarchyRoute
+  AuthedMembersMemberIdRoute: typeof AuthedMembersMemberIdRoute
   AuthedMembersIndexRoute: typeof AuthedMembersIndexRoute
   AuthedUsersIndexRoute: typeof AuthedUsersIndexRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedDashboardRoute: AuthedDashboardRoute,
+  AuthedHierarchyRoute: AuthedHierarchyRoute,
+  AuthedMembersMemberIdRoute: AuthedMembersMemberIdRoute,
   AuthedMembersIndexRoute: AuthedMembersIndexRoute,
   AuthedUsersIndexRoute: AuthedUsersIndexRoute,
 }
