@@ -52,6 +52,7 @@ export const createMember = createServerFn({ method: "POST" })
 			residence: data.residence,
 			fieldOfStudy: data.fieldOfStudy,
 			areaGroup: null,
+			yearOfStudy: null,
 			status: data.status,
 		});
 

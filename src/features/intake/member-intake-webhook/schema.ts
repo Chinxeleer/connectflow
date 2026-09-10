@@ -1,16 +1,24 @@
 import { z } from "zod";
-import { areaGroup } from "@/db/schema/members.ts";
+import {
+	areaGroup,
+	type YearOfStudy,
+	yearOfStudy,
+} from "@/db/schema/members.ts";
 
 const optionalText = z
 	.string()
 	.trim()
 	.max(200, "That is longer than 200 characters.");
 
+const yearOfStudyValues = yearOfStudy.enumValues as readonly string[];
+
 /**
  * The Google Form's "new member" response, as the Apps Script trigger POSTs
  * it. `areaGroup` is required — unlike the manual add form, this is the one
  * intake path that always has an answer for it, since the form asks for it
- * directly.
+ * directly. `yearOfStudy` follows `fieldOfStudy`'s convention instead: optional,
+ * blank is a valid answer, and a blank submission never overwrites an existing
+ * one — see `backfill.ts`.
  */
 export const memberIntakeWebhookSchema = z.object({
 	fullName: z
@@ -28,6 +36,12 @@ export const memberIntakeWebhookSchema = z.object({
 	gender: optionalText.default(""),
 	residence: optionalText.default(""),
 	fieldOfStudy: optionalText.default(""),
+	yearOfStudy: optionalText
+		.default("")
+		.refine(
+			(value) => value === "" || yearOfStudyValues.includes(value),
+			"yearOfStudy must be one of the fixed values or blank.",
+		),
 	areaGroup: z.enum(
 		areaGroup.enumValues,
 		"areaGroup must be one of the five area groups.",
@@ -54,6 +68,7 @@ export const memberIntakeSchema = memberIntakeWebhookSchema.transform(
 		gender: blankToNull(data.gender),
 		residence: blankToNull(data.residence),
 		fieldOfStudy: blankToNull(data.fieldOfStudy),
+		yearOfStudy: blankToNull(data.yearOfStudy) as YearOfStudy | null,
 		areaGroup: data.areaGroup,
 		submittedAt: new Date(data.submittedAt),
 	}),

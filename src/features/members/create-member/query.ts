@@ -1,5 +1,9 @@
 import { db } from "@/db/index.ts";
-import type { AreaGroup, MemberStatus } from "@/db/schema/members.ts";
+import type {
+	AreaGroup,
+	MemberStatus,
+	YearOfStudy,
+} from "@/db/schema/members.ts";
 import { members } from "@/db/schema/members.ts";
 
 export type InsertMemberValues = {
@@ -11,6 +15,7 @@ export type InsertMemberValues = {
 	residence: string | null;
 	fieldOfStudy: string | null;
 	areaGroup: AreaGroup | null;
+	yearOfStudy: YearOfStudy | null;
 	status: MemberStatus;
 };
 

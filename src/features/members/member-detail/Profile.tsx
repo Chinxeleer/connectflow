@@ -150,14 +150,14 @@ export function MemberProfile({ memberId }: { memberId: string }) {
 						<DetailRow label="Gender">{member.gender}</DetailRow>
 						<DetailRow label="Residence">{member.residence}</DetailRow>
 						<DetailRow label="Field of study">{member.fieldOfStudy}</DetailRow>
-						<DetailRow label="Area group">
-							{member.areaGroup ? (
-								<AreaGroupBadge areaGroup={member.areaGroup} />
-							) : undefined}
-						</DetailRow>
 						<DetailRow label="Year of study">
 							{member.yearOfStudy ? (
 								<YearOfStudyBadge yearOfStudy={member.yearOfStudy} />
+							) : undefined}
+						</DetailRow>
+						<DetailRow label="Area group">
+							{member.areaGroup ? (
+								<AreaGroupBadge areaGroup={member.areaGroup} />
 							) : undefined}
 						</DetailRow>
 						<DetailRow label="Sign-in account">

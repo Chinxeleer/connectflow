@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areaGroup } from "@/db/schema/members.ts";
+import { areaGroup, yearOfStudy } from "@/db/schema/members.ts";
 import { memberIntakeSchema, memberIntakeWebhookSchema } from "./schema.ts";
 
 const valid = {
@@ -9,6 +9,7 @@ const valid = {
 	gender: "female",
 	residence: "Hall 3",
 	fieldOfStudy: "Mathematics",
+	yearOfStudy: "year_2" as const,
 	areaGroup: "parktown_east" as const,
 	submittedAt: "2026-09-10T12:00:00Z",
 };
@@ -68,6 +69,32 @@ describe("memberIntakeWebhookSchema", () => {
 		);
 	});
 
+	it.each(yearOfStudy.enumValues)("accepts the %s year of study", (year) => {
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, yearOfStudy: year })
+				.success,
+		).toBe(true);
+	});
+
+	it("accepts a blank year of study", () => {
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, yearOfStudy: "" })
+				.success,
+		).toBe(true);
+	});
+
+	it("rejects a year of study outside the fixed set", () => {
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, yearOfStudy: "year_9" })
+				.success,
+		).toBe(false);
+	});
+
+	it("does not require a year of study", () => {
+		const { yearOfStudy: _omitted, ...withoutYear } = valid;
+		expect(memberIntakeWebhookSchema.safeParse(withoutYear).success).toBe(true);
+	});
+
 	it("rejects a submittedAt that is not a valid ISO datetime", () => {
 		expect(
 			memberIntakeWebhookSchema.safeParse({
@@ -87,6 +114,7 @@ describe("memberIntakeSchema", () => {
 			gender: "",
 			residence: "",
 			fieldOfStudy: "",
+			yearOfStudy: "",
 			areaGroup: "main_central",
 			submittedAt: "2026-09-10T12:00:00Z",
 		});
@@ -97,6 +125,7 @@ describe("memberIntakeSchema", () => {
 			gender: null,
 			residence: null,
 			fieldOfStudy: null,
+			yearOfStudy: null,
 		});
 	});
 

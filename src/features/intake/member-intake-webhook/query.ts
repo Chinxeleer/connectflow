@@ -35,6 +35,7 @@ export async function upsertMemberFromIntake(
 				residence: members.residence,
 				fieldOfStudy: members.fieldOfStudy,
 				areaGroup: members.areaGroup,
+				yearOfStudy: members.yearOfStudy,
 			})
 			.from(members)
 			.where(eq(members.email, values.email));
@@ -60,6 +61,7 @@ export async function upsertMemberFromIntake(
 		residence: values.residence,
 		fieldOfStudy: values.fieldOfStudy,
 		areaGroup: values.areaGroup,
+		yearOfStudy: values.yearOfStudy,
 		status: "new",
 	});
 

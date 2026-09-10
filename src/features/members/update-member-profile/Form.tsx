@@ -178,9 +178,44 @@ export function UpdateMemberProfileForm({
 					</form.Field>
 				</div>
 
-				<form.Field name="fieldOfStudy">
-					{(field) => <TextField field={field} label="Field of study" />}
-				</form.Field>
+				<div className="grid gap-4 sm:grid-cols-2">
+					<form.Field name="fieldOfStudy">
+						{(field) => <TextField field={field} label="Field of study" />}
+					</form.Field>
+
+					<form.Field name="yearOfStudy">
+						{(field) => (
+							<Field data-invalid={field.state.meta.errors.length > 0}>
+								<FieldLabel htmlFor={field.name}>Year of study</FieldLabel>
+								<Select
+									value={field.state.value ?? UNSET_YEAR_OF_STUDY}
+									onValueChange={(value) =>
+										field.handleChange(
+											value === UNSET_YEAR_OF_STUDY
+												? null
+												: (value as YearOfStudy),
+										)
+									}
+								>
+									<SelectTrigger id={field.name} className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={UNSET_YEAR_OF_STUDY}>
+											<span className="text-muted-foreground">Not set</span>
+										</SelectItem>
+										{yearOfStudy.enumValues.map((year) => (
+											<SelectItem key={year} value={year}>
+												{YEAR_OF_STUDY_LABELS[year]}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<FieldError errors={field.state.meta.errors} />
+							</Field>
+						)}
+					</form.Field>
+				</div>
 
 				<form.Field name="areaGroup">
 					{(field) => (
@@ -204,39 +239,6 @@ export function UpdateMemberProfileForm({
 									{areaGroup.enumValues.map((group) => (
 										<SelectItem key={group} value={group}>
 											{AREA_GROUP_LABELS[group]}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<FieldError errors={field.state.meta.errors} />
-						</Field>
-					)}
-				</form.Field>
-
-				<form.Field name="yearOfStudy">
-					{(field) => (
-						<Field data-invalid={field.state.meta.errors.length > 0}>
-							<FieldLabel htmlFor={field.name}>Year of study</FieldLabel>
-							<Select
-								value={field.state.value ?? UNSET_YEAR_OF_STUDY}
-								onValueChange={(value) =>
-									field.handleChange(
-										value === UNSET_YEAR_OF_STUDY
-											? null
-											: (value as YearOfStudy),
-									)
-								}
-							>
-								<SelectTrigger id={field.name} className="w-full">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value={UNSET_YEAR_OF_STUDY}>
-										<span className="text-muted-foreground">Not set</span>
-									</SelectItem>
-									{yearOfStudy.enumValues.map((year) => (
-										<SelectItem key={year} value={year}>
-											{YEAR_OF_STUDY_LABELS[year]}
 										</SelectItem>
 									))}
 								</SelectContent>

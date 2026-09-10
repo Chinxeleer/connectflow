@@ -11,6 +11,7 @@ const emptyExisting: ExistingMemberFields = {
 	residence: null,
 	fieldOfStudy: null,
 	areaGroup: null,
+	yearOfStudy: null,
 };
 
 const fullExisting: ExistingMemberFields = {
@@ -19,6 +20,7 @@ const fullExisting: ExistingMemberFields = {
 	residence: "Hall 3",
 	fieldOfStudy: "Mathematics",
 	areaGroup: "main_central",
+	yearOfStudy: "year_1",
 };
 
 const incoming: MemberIntakeValues = {
@@ -28,6 +30,7 @@ const incoming: MemberIntakeValues = {
 	gender: "male",
 	residence: "Hall 5",
 	fieldOfStudy: "Literature",
+	yearOfStudy: "year_3",
 	areaGroup: "parktown_east",
 	submittedAt: new Date("2026-09-10T12:00:00Z"),
 };
@@ -39,6 +42,7 @@ describe("buildIntakeBackfillPatch", () => {
 			gender: "male",
 			residence: "Hall 5",
 			fieldOfStudy: "Literature",
+			yearOfStudy: "year_3",
 			areaGroup: "parktown_east",
 		});
 	});
@@ -52,25 +56,39 @@ describe("buildIntakeBackfillPatch", () => {
 			...fullExisting,
 			residence: null,
 			areaGroup: null,
+			yearOfStudy: null,
 		};
 
 		expect(buildIntakeBackfillPatch(existing, incoming)).toEqual({
 			residence: "Hall 5",
 			areaGroup: "parktown_east",
+			yearOfStudy: "year_3",
 		});
 	});
 
-	it("never touches phone/gender/residence/fieldOfStudy when the incoming value is null", () => {
+	it("never touches phone/gender/residence/fieldOfStudy/yearOfStudy when the incoming value is null", () => {
 		const blankIncoming: MemberIntakeValues = {
 			...incoming,
 			phone: null,
 			gender: null,
 			residence: null,
 			fieldOfStudy: null,
+			yearOfStudy: null,
 		};
 
 		expect(buildIntakeBackfillPatch(emptyExisting, blankIncoming)).toEqual({
 			areaGroup: "parktown_east",
+		});
+	});
+
+	it("fills yearOfStudy only when missing, same as fieldOfStudy", () => {
+		const existing: ExistingMemberFields = {
+			...fullExisting,
+			yearOfStudy: null,
+		};
+
+		expect(buildIntakeBackfillPatch(existing, incoming)).toEqual({
+			yearOfStudy: "year_3",
 		});
 	});
 

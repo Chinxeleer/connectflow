@@ -1,4 +1,4 @@
-import type { AreaGroup } from "@/db/schema/members.ts";
+import type { AreaGroup, YearOfStudy } from "@/db/schema/members.ts";
 import type { MemberIntakeValues } from "./schema.ts";
 
 export type ExistingMemberFields = {
@@ -7,6 +7,7 @@ export type ExistingMemberFields = {
 	residence: string | null;
 	fieldOfStudy: string | null;
 	areaGroup: AreaGroup | null;
+	yearOfStudy: YearOfStudy | null;
 };
 
 export type IntakeBackfillPatch = Partial<{
@@ -15,6 +16,7 @@ export type IntakeBackfillPatch = Partial<{
 	residence: string;
 	fieldOfStudy: string;
 	areaGroup: AreaGroup;
+	yearOfStudy: YearOfStudy;
 }>;
 
 /**
@@ -42,6 +44,9 @@ export function buildIntakeBackfillPatch(
 	}
 	if (existing.fieldOfStudy === null && incoming.fieldOfStudy !== null) {
 		patch.fieldOfStudy = incoming.fieldOfStudy;
+	}
+	if (existing.yearOfStudy === null && incoming.yearOfStudy !== null) {
+		patch.yearOfStudy = incoming.yearOfStudy;
 	}
 	// areaGroup is required on the incoming payload — never null — so the only
 	// question is whether the existing row already has one.
