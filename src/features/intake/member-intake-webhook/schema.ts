@@ -1,16 +1,99 @@
 import { z } from "zod";
 import {
+	AREA_GROUP_LABELS,
+	type AreaGroup,
 	areaGroup,
+	YEAR_OF_STUDY_LABELS,
 	type YearOfStudy,
 	yearOfStudy,
 } from "@/db/schema/members.ts";
 
+/**
+ * The Apps Script trigger sends `null` for an unanswered question, not a
+ * missing key — `JSON.stringify` keeps `null` but drops `undefined` — so
+ * every optional field has to tolerate both, not just an absent key. `.default()`
+ * alone only rescues `undefined`.
+ */
 const optionalText = z
 	.string()
 	.trim()
-	.max(200, "That is longer than 200 characters.");
+	.max(200, "That is longer than 200 characters.")
+	.nullish()
+	.transform((value) => value ?? "");
 
-const yearOfStudyValues = yearOfStudy.enumValues as readonly string[];
+/**
+ * Resolves a choice question's answer to the enum value it's stored as.
+ * Google Forms has no separate value/label for a multiple-choice question —
+ * the payload carries whatever text the option displays ("Main (Central)"),
+ * not the slug we store ("main_central") — so this accepts either, matching
+ * the label case-insensitively since form authors won't always match it
+ * exactly.
+ */
+function resolveEnumChoice<T extends string>(
+	enumValues: readonly T[],
+	labels: Record<T, string>,
+	raw: string,
+): T | null {
+	const trimmed = raw.trim();
+	if ((enumValues as readonly string[]).includes(trimmed)) {
+		return trimmed as T;
+	}
+
+	const normalized = trimmed.toLowerCase();
+	return (
+		enumValues.find((value) => labels[value].toLowerCase() === normalized) ??
+		null
+	);
+}
+
+/** A choice field that's allowed to be blank/unanswered. */
+function optionalEnumChoice<T extends string>(
+	enumValues: readonly T[],
+	labels: Record<T, string>,
+	fieldName: string,
+) {
+	return z
+		.string()
+		.nullish()
+		.transform((value, ctx) => {
+			const raw = (value ?? "").trim();
+			if (raw === "") return null;
+
+			const resolved = resolveEnumChoice(enumValues, labels, raw);
+			if (!resolved) {
+				ctx.addIssue({
+					code: "custom",
+					message: `${fieldName} must be one of the fixed values or blank.`,
+				});
+				return z.NEVER;
+			}
+			return resolved;
+		});
+}
+
+/** A choice field that must have an answer. */
+function requiredEnumChoice<T extends string>(
+	enumValues: readonly T[],
+	labels: Record<T, string>,
+	fieldName: string,
+) {
+	return z
+		.string()
+		.nullish()
+		.transform((value, ctx) => {
+			const raw = (value ?? "").trim();
+			const resolved =
+				raw === "" ? null : resolveEnumChoice(enumValues, labels, raw);
+			if (!resolved) {
+				ctx.addIssue({
+					code: "custom",
+					message: `${fieldName} must be one of the fixed values.`,
+				});
+				return z.NEVER;
+			}
+			return resolved;
+		});
+}
 
 /**
  * The Google Form's "new member" response, as the Apps Script trigger POSTs
@@ -26,25 +109,23 @@ export const memberIntakeWebhookSchema = z.object({
 		.trim()
 		.min(2, "fullName is required.")
 		.max(200, "That name is unreasonably long."),
-	phone: optionalText.default(""),
-	email: optionalText
-		.default("")
-		.refine(
-			(value) => value === "" || z.email().safeParse(value).success,
-			"email must be a valid address or blank.",
-		),
-	gender: optionalText.default(""),
-	residence: optionalText.default(""),
-	fieldOfStudy: optionalText.default(""),
-	yearOfStudy: optionalText
-		.default("")
-		.refine(
-			(value) => value === "" || yearOfStudyValues.includes(value),
-			"yearOfStudy must be one of the fixed values or blank.",
-		),
-	areaGroup: z.enum(
+	phone: optionalText,
+	email: optionalText.refine(
+		(value) => value === "" || z.email().safeParse(value).success,
+		"email must be a valid address or blank.",
+	),
+	gender: optionalText,
+	residence: optionalText,
+	fieldOfStudy: optionalText,
+	yearOfStudy: optionalEnumChoice(
+		yearOfStudy.enumValues,
+		YEAR_OF_STUDY_LABELS,
+		"yearOfStudy",
+	),
+	areaGroup: requiredEnumChoice(
 		areaGroup.enumValues,
-		"areaGroup must be one of the five area groups.",
+		AREA_GROUP_LABELS,
+		"areaGroup",
 	),
 	submittedAt: z.iso.datetime({ offset: true }),
 });
@@ -58,7 +139,8 @@ const blankToNull = (value: string) => (value.length > 0 ? value : null);
 /**
  * What actually gets stored — blank cells become null, same rule the manual
  * add form and the CSV import both follow, so "" and "not answered" are never
- * two different states in the database.
+ * two different states in the database. `yearOfStudy` and `areaGroup` are
+ * already resolved to their stored enum values by this point.
  */
 export const memberIntakeSchema = memberIntakeWebhookSchema.transform(
 	(data) => ({
@@ -68,8 +150,8 @@ export const memberIntakeSchema = memberIntakeWebhookSchema.transform(
 		gender: blankToNull(data.gender),
 		residence: blankToNull(data.residence),
 		fieldOfStudy: blankToNull(data.fieldOfStudy),
-		yearOfStudy: blankToNull(data.yearOfStudy) as YearOfStudy | null,
-		areaGroup: data.areaGroup,
+		yearOfStudy: data.yearOfStudy as YearOfStudy | null,
+		areaGroup: data.areaGroup as AreaGroup,
 		submittedAt: new Date(data.submittedAt),
 	}),
 );

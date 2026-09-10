@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { areaGroup, yearOfStudy } from "@/db/schema/members.ts";
+import {
+	AREA_GROUP_LABELS,
+	areaGroup,
+	YEAR_OF_STUDY_LABELS,
+	yearOfStudy,
+} from "@/db/schema/members.ts";
 import { memberIntakeSchema, memberIntakeWebhookSchema } from "./schema.ts";
 
 const valid = {
@@ -48,11 +53,50 @@ describe("memberIntakeWebhookSchema", () => {
 		expect(result.success).toBe(true);
 	});
 
-	it.each(areaGroup.enumValues)("accepts the %s area group", (group) => {
+	// Apps Script's `v()` helper returns `null`, not a missing key, for an
+	// unanswered question — and JSON.stringify keeps null keys, unlike
+	// undefined ones. Every optional field must tolerate this, not just an
+	// absent key.
+	it.each([
+		"phone",
+		"email",
+		"gender",
+		"residence",
+		"fieldOfStudy",
+		"yearOfStudy",
+	])("accepts null for the optional %s field", (field) => {
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, [field]: null }).success,
+		).toBe(true);
+	});
+
+	it.each(
+		areaGroup.enumValues,
+	)("accepts the %s area group by its slug", (group) => {
 		expect(
 			memberIntakeWebhookSchema.safeParse({ ...valid, areaGroup: group })
 				.success,
 		).toBe(true);
+	});
+
+	it.each(
+		areaGroup.enumValues,
+	)("accepts the %s area group by its Google Forms label", (group) => {
+		const result = memberIntakeWebhookSchema.safeParse({
+			...valid,
+			areaGroup: AREA_GROUP_LABELS[group],
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.areaGroup).toBe(group);
+	});
+
+	it("matches an area group label case-insensitively", () => {
+		const result = memberIntakeWebhookSchema.safeParse({
+			...valid,
+			areaGroup: "main (central)",
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.areaGroup).toBe("main_central");
 	});
 
 	it("rejects an area group outside the fixed five", () => {
@@ -62,23 +106,47 @@ describe("memberIntakeWebhookSchema", () => {
 		).toBe(false);
 	});
 
-	it("requires an area group", () => {
+	it("requires an area group, whether omitted, blank, or null", () => {
 		const { areaGroup: _omitted, ...withoutArea } = valid;
 		expect(memberIntakeWebhookSchema.safeParse(withoutArea).success).toBe(
 			false,
 		);
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, areaGroup: "" }).success,
+		).toBe(false);
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, areaGroup: null })
+				.success,
+		).toBe(false);
 	});
 
-	it.each(yearOfStudy.enumValues)("accepts the %s year of study", (year) => {
+	it.each(
+		yearOfStudy.enumValues,
+	)("accepts the %s year of study by its slug", (year) => {
 		expect(
 			memberIntakeWebhookSchema.safeParse({ ...valid, yearOfStudy: year })
 				.success,
 		).toBe(true);
 	});
 
-	it("accepts a blank year of study", () => {
+	it.each(
+		yearOfStudy.enumValues,
+	)("accepts the %s year of study by its Google Forms label", (year) => {
+		const result = memberIntakeWebhookSchema.safeParse({
+			...valid,
+			yearOfStudy: YEAR_OF_STUDY_LABELS[year],
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.yearOfStudy).toBe(year);
+	});
+
+	it("accepts a blank or null year of study", () => {
 		expect(
 			memberIntakeWebhookSchema.safeParse({ ...valid, yearOfStudy: "" })
+				.success,
+		).toBe(true);
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, yearOfStudy: null })
 				.success,
 		).toBe(true);
 	});
@@ -127,6 +195,37 @@ describe("memberIntakeSchema", () => {
 			fieldOfStudy: null,
 			yearOfStudy: null,
 		});
+	});
+
+	it("turns null optional fields into null, the same as blank", () => {
+		const parsed = memberIntakeSchema.parse({
+			fullName: "Ada Lovelace",
+			phone: null,
+			email: null,
+			gender: null,
+			residence: null,
+			fieldOfStudy: null,
+			yearOfStudy: null,
+			areaGroup: "main_central",
+			submittedAt: "2026-09-10T12:00:00Z",
+		});
+
+		expect(parsed).toMatchObject({
+			phone: null,
+			email: null,
+			gender: null,
+			residence: null,
+			fieldOfStudy: null,
+			yearOfStudy: null,
+		});
+	});
+
+	it("resolves a Google Forms area group label to its stored slug", () => {
+		const parsed = memberIntakeSchema.parse({
+			...valid,
+			areaGroup: "Braamfontein West",
+		});
+		expect(parsed.areaGroup).toBe("braamfontein_west");
 	});
 
 	it("parses submittedAt into a Date", () => {
