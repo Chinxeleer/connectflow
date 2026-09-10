@@ -1,4 +1,4 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, type SQL, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
@@ -28,9 +28,18 @@ const profileIncomplete = sql<boolean>`(
  * Members visible to the caller. Scoping is applied in SQL — never fetch the
  * table and filter in the component, or a leader's response body carries every
  * other leader's people.
+ *
+ * `extraWhere` ANDs in a further predicate on top of the scope — used by the
+ * per-area page to reuse this query and its `hasReports`/`profileIncomplete`
+ * subqueries rather than a second, easily-drifting copy of them.
  */
-export function selectMembers(scope: MemberScope) {
-	const where = memberScopeWhere(scope);
+export function selectMembers(scope: MemberScope, extraWhere?: SQL) {
+	const scopeWhere = memberScopeWhere(scope);
+	const where = extraWhere
+		? scopeWhere
+			? and(scopeWhere, extraWhere)
+			: extraWhere
+		: scopeWhere;
 
 	const query = db
 		.select({

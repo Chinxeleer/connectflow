@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { memberStatus } from "@/db/schema/members.ts";
+import { areaGroup, memberStatus } from "@/db/schema/members.ts";
 
 /**
  * Deliberately a copy of the equivalent in `create-member/schema.ts` rather
@@ -40,6 +40,7 @@ export const updateMemberProfileInputSchema = z
 		gender: optionalText,
 		residence: optionalText,
 		fieldOfStudy: optionalText,
+		areaGroup: z.enum(areaGroup.enumValues).nullable(),
 		status: z.enum(memberStatus.enumValues),
 	})
 	// Cheap to catch here, and it keeps the one-step loop out of the database.

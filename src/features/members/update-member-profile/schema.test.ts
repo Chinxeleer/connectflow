@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { memberStatus } from "@/db/schema/members.ts";
+import { areaGroup, memberStatus } from "@/db/schema/members.ts";
 import {
 	updateMemberProfileInputSchema,
 	updateMemberProfileSchema,
@@ -17,6 +17,7 @@ const valid = {
 	gender: "female",
 	residence: "Sunnyside",
 	fieldOfStudy: "Computer Science",
+	areaGroup: "parktown_east" as const,
 	status: "assigned" as const,
 };
 
@@ -122,6 +123,29 @@ describe("updateMemberProfileSchema", () => {
 		).toBe(true);
 		expect(
 			updateMemberProfileSchema.safeParse({ ...valid, email: "ada@" }).success,
+		).toBe(false);
+	});
+
+	it.each(areaGroup.enumValues)("accepts the %s area group", (group) => {
+		expect(
+			updateMemberProfileSchema.safeParse({ ...valid, areaGroup: group })
+				.success,
+		).toBe(true);
+	});
+
+	it("accepts a null area group as not yet set", () => {
+		expect(
+			updateMemberProfileSchema.safeParse({ ...valid, areaGroup: null })
+				.success,
+		).toBe(true);
+	});
+
+	it("rejects an unknown area group rather than silently defaulting", () => {
+		expect(
+			updateMemberProfileSchema.safeParse({
+				...valid,
+				areaGroup: "somewhere_else",
+			}).success,
 		).toBe(false);
 	});
 

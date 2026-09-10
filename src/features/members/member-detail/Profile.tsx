@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
+import { AreaGroupBadge } from "@/components/shared/area-group-badge.tsx";
 import { MemberStatusBadge } from "@/components/shared/status-badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -148,6 +149,11 @@ export function MemberProfile({ memberId }: { memberId: string }) {
 						<DetailRow label="Gender">{member.gender}</DetailRow>
 						<DetailRow label="Residence">{member.residence}</DetailRow>
 						<DetailRow label="Field of study">{member.fieldOfStudy}</DetailRow>
+						<DetailRow label="Area group">
+							{member.areaGroup ? (
+								<AreaGroupBadge areaGroup={member.areaGroup} />
+							) : undefined}
+						</DetailRow>
 						<DetailRow label="Sign-in account">
 							{member.hasAccount ? "Linked" : undefined}
 						</DetailRow>

@@ -20,11 +20,20 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select.tsx";
-import { type MemberStatus, memberStatus } from "@/db/schema/members.ts";
+import {
+	AREA_GROUP_LABELS,
+	type AreaGroup,
+	areaGroup,
+	type MemberStatus,
+	memberStatus,
+} from "@/db/schema/members.ts";
 import type { MemberDetail } from "../member-detail/query.ts";
 import { updateMemberProfile } from "./action.ts";
 import type { ProfileFieldPermissions } from "./guard.ts";
 import { updateMemberProfileInputSchema } from "./schema.ts";
+
+/** Radix `Select.Item` cannot hold an empty-string value, so "not set" needs one. */
+const UNSET_AREA_GROUP = "__unset__";
 
 function TextField({
 	field,
@@ -114,6 +123,7 @@ export function UpdateMemberProfileForm({
 			gender: member.gender ?? "",
 			residence: member.residence ?? "",
 			fieldOfStudy: member.fieldOfStudy ?? "",
+			areaGroup: member.areaGroup,
 			status: member.status,
 		},
 		validators: { onSubmit: updateMemberProfileInputSchema },
@@ -165,6 +175,37 @@ export function UpdateMemberProfileForm({
 
 				<form.Field name="fieldOfStudy">
 					{(field) => <TextField field={field} label="Field of study" />}
+				</form.Field>
+
+				<form.Field name="areaGroup">
+					{(field) => (
+						<Field data-invalid={field.state.meta.errors.length > 0}>
+							<FieldLabel htmlFor={field.name}>Area group</FieldLabel>
+							<Select
+								value={field.state.value ?? UNSET_AREA_GROUP}
+								onValueChange={(value) =>
+									field.handleChange(
+										value === UNSET_AREA_GROUP ? null : (value as AreaGroup),
+									)
+								}
+							>
+								<SelectTrigger id={field.name} className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value={UNSET_AREA_GROUP}>
+										<span className="text-muted-foreground">Not set</span>
+									</SelectItem>
+									{areaGroup.enumValues.map((group) => (
+										<SelectItem key={group} value={group}>
+											{AREA_GROUP_LABELS[group]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<FieldError errors={field.state.meta.errors} />
+						</Field>
+					)}
 				</form.Field>
 
 				{permissions.canEditStatus ? (

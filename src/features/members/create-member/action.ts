@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth.ts";
 import { requireActor } from "@/lib/permissions.ts";
 import { linkedMemberIdsFor } from "../scope.ts";
 import { resolveNewMemberLeader } from "./guard.ts";
+import { insertMember } from "./query.ts";
 import { createMemberSchema } from "./schema.ts";
 
 /**
@@ -42,19 +43,17 @@ export const createMember = createServerFn({ method: "POST" })
 			if (!leader) throw new Error("That connect leader no longer exists.");
 		}
 
-		const [created] = await db
-			.insert(members)
-			.values({
-				name: data.name,
-				leaderId: assignment.leaderId,
-				phone: data.phone,
-				email: data.email,
-				gender: data.gender,
-				residence: data.residence,
-				fieldOfStudy: data.fieldOfStudy,
-				status: data.status,
-			})
-			.returning({ id: members.id, name: members.name });
+		const created = await insertMember({
+			name: data.name,
+			leaderId: assignment.leaderId,
+			phone: data.phone,
+			email: data.email,
+			gender: data.gender,
+			residence: data.residence,
+			fieldOfStudy: data.fieldOfStudy,
+			areaGroup: null,
+			status: data.status,
+		});
 
 		return { id: created.id, name: created.name };
 	});

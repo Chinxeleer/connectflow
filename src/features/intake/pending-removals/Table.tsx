@@ -1,5 +1,4 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import {
 	type ColumnDef,
 	columnFilteringFeature,
@@ -18,13 +17,12 @@ import {
 	tableFeatures,
 	useTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, Eye } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import {
 	DataTablePagination,
 	DEFAULT_PAGE_SIZE,
 } from "@/components/shared/data-table-pagination.tsx";
-import { MemberStatusBadge } from "@/components/shared/status-badge.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -36,9 +34,26 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table.tsx";
-import { ConfirmDeleteMember } from "@/features/members/delete-member/ConfirmDelete.tsx";
-import { membersQueryOptions } from "./action.ts";
-import type { MemberListRow } from "./query.ts";
+import type { PendingRemovalStatus } from "@/db/schema/pending-removals.ts";
+import { pendingRemovalsQueryOptions } from "./action.ts";
+import { DismissPendingRemovalButton } from "./DismissButton.tsx";
+import type { PendingRemovalRow } from "./query.ts";
+import { ResolvePendingRemovalDialog } from "./ResolveDialog.tsx";
+
+const STATUS_VARIANT: Record<
+	PendingRemovalStatus,
+	"default" | "secondary" | "outline"
+> = {
+	pending: "default",
+	resolved: "secondary",
+	dismissed: "outline",
+};
+
+const dateFormat = new Intl.DateTimeFormat("en-GB", {
+	day: "numeric",
+	month: "short",
+	year: "numeric",
+});
 
 const features = tableFeatures({
 	rowPaginationFeature,
@@ -57,112 +72,73 @@ const features = tableFeatures({
 	filterFns: { includesString: filterFn_includesString },
 });
 
-function buildColumns(
-	canDelete: boolean,
-): ColumnDef<typeof features, MemberListRow>[] {
-	const columns: ColumnDef<typeof features, MemberListRow>[] = [
-		{
-			accessorKey: "name",
-			header: "Name",
-			sortFn: "text",
-			cell: ({ row }) => (
-				<Link
-					to="/members/$memberId"
-					params={{ memberId: row.original.id }}
-					className="font-medium underline-offset-4 hover:underline"
-				>
-					{row.original.name}
-				</Link>
-			),
-		},
-		{
-			accessorKey: "leaderName",
-			header: "Connect Leader",
-			sortFn: "text",
-			cell: ({ row }) =>
-				row.original.leaderName ? (
-					<span>{row.original.leaderName}</span>
-				) : (
-					<span className="text-muted-foreground italic">Unassigned</span>
-				),
-		},
-		{
-			accessorKey: "hasReports",
-			header: "Role",
-			sortFn: "basic",
-			cell: ({ row }) =>
-				row.original.hasReports ? (
-					<Badge variant="secondary">Leader</Badge>
-				) : null,
-		},
-		{
-			accessorKey: "status",
-			header: "Status",
-			sortFn: "text",
-			cell: ({ row }) => <MemberStatusBadge status={row.original.status} />,
-		},
-		{
-			accessorKey: "profileIncomplete",
-			header: "Profile",
-			sortFn: "basic",
-			cell: ({ row }) =>
-				row.original.profileIncomplete ? (
-					<Badge
-						variant="outline"
-						className="text-muted-foreground font-normal"
-						title="Gender, residence or field of study is still blank"
-					>
-						Incomplete
-					</Badge>
-				) : null,
-		},
-		{
-			id: "actions",
-			header: "Actions",
-			cell: ({ row }) => (
+const columns: ColumnDef<typeof features, PendingRemovalRow>[] = [
+	{
+		accessorKey: "firstName",
+		header: "First name",
+		sortFn: "text",
+	},
+	{
+		accessorKey: "surname",
+		header: "Surname",
+		sortFn: "text",
+	},
+	{
+		accessorKey: "submittedAt",
+		header: "Submitted",
+		sortFn: "datetime",
+		cell: ({ row }) => dateFormat.format(new Date(row.original.submittedAt)),
+	},
+	{
+		accessorKey: "status",
+		header: "Status",
+		sortFn: "text",
+		cell: ({ row }) => (
+			<Badge variant={STATUS_VARIANT[row.original.status]}>
+				{row.original.status}
+			</Badge>
+		),
+	},
+	{
+		accessorKey: "resolvedByName",
+		header: "Handled by",
+		sortFn: "text",
+		cell: ({ row }) => row.original.resolvedByName ?? null,
+	},
+	{
+		id: "actions",
+		header: "Actions",
+		cell: ({ row }) =>
+			row.original.status === "pending" ? (
 				<div className="flex items-center justify-end gap-1">
-					<Button variant="ghost" size="sm" asChild>
-						<Link
-							to="/members/$memberId"
-							params={{ memberId: row.original.id }}
-						>
-							<Eye className="size-4" />
-							<span className="sr-only sm:not-sr-only">View</span>
-						</Link>
-					</Button>
-					{canDelete ? <ConfirmDeleteMember member={row.original} /> : null}
+					<ResolvePendingRemovalDialog
+						pendingRemovalId={row.original.id}
+						firstName={row.original.firstName}
+						surname={row.original.surname}
+					/>
+					<DismissPendingRemovalButton
+						pendingRemovalId={row.original.id}
+						firstName={row.original.firstName}
+						surname={row.original.surname}
+					/>
 				</div>
-			),
-		},
-	];
-
-	return columns;
-}
+			) : null,
+	},
+];
 
 /**
- * The table itself, over whatever rows the caller already fetched and scoped.
- * Shared by the members page (`MembersTable`, below) and the per-area page,
- * which fetches its own area-filtered rows — both need the same columns and
- * the same sort/filter/paginate behaviour, just different data.
+ * Every removal request the webhook couldn't resolve on its own, oldest
+ * decisions still visible alongside the ones still waiting — a resolved or
+ * dismissed row is a record of what happened, not something to hide.
  */
-export function MemberRowsTable({
-	data,
-	canDelete,
-	filterPlaceholder = "Filter by name, leader or status…",
-	emptyLabel = "No members yet.",
-}: {
-	data: MemberListRow[];
-	canDelete: boolean;
-	filterPlaceholder?: string;
-	emptyLabel?: string;
-}) {
+export function PendingRemovalsTable() {
+	const { data } = useSuspenseQuery(pendingRemovalsQueryOptions);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [pagination, setPagination] = useState({
 		pageIndex: 0,
 		pageSize: DEFAULT_PAGE_SIZE,
 	});
-	const [columns] = useState(() => buildColumns(canDelete));
 
 	const table = useTable({
 		features,
@@ -186,9 +162,9 @@ export function MemberRowsTable({
 					setGlobalFilter(event.target.value);
 					setPagination((current) => ({ ...current, pageIndex: 0 }));
 				}}
-				placeholder={filterPlaceholder}
+				placeholder="Filter by name or status…"
 				className="max-w-sm"
-				aria-label="Filter members"
+				aria-label="Filter removal requests"
 			/>
 
 			<div className="overflow-hidden rounded-lg border">
@@ -240,8 +216,8 @@ export function MemberRowsTable({
 									className="h-24 text-center text-muted-foreground"
 								>
 									{data.length === 0
-										? emptyLabel
-										: "No members match that filter."}
+										? "No removal requests yet."
+										: "No requests match that filter."}
 								</TableCell>
 							</TableRow>
 						)}
@@ -255,25 +231,14 @@ export function MemberRowsTable({
 				pageCount={table.getPageCount()}
 				filteredRows={filteredCount}
 				totalRows={data.length}
-				noun="members"
+				noun="requests"
 				onPageChange={(pageIndex) =>
 					setPagination((current) => ({ ...current, pageIndex }))
 				}
 				onPageSizeChange={(pageSize) =>
-					// Back to the first page: page 7 of a 10-row view does not
-					// exist once the page size becomes 100.
 					setPagination({ pageIndex: 0, pageSize })
 				}
 			/>
 		</div>
 	);
-}
-
-/**
- * Rows arrive already scoped by the server — an admin's response carries every
- * member, a leader's carries only their own. Nothing here re-filters.
- */
-export function MembersTable({ canDelete }: { canDelete: boolean }) {
-	const { data } = useSuspenseQuery(membersQueryOptions);
-	return <MemberRowsTable data={data} canDelete={canDelete} />;
 }

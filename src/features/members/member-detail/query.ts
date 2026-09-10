@@ -29,6 +29,7 @@ export async function selectMemberDetail(memberId: string) {
 			gender: members.gender,
 			residence: members.residence,
 			fieldOfStudy: members.fieldOfStudy,
+			areaGroup: members.areaGroup,
 			status: members.status,
 			leaderId: members.leaderId,
 			leaderName: leader.name,

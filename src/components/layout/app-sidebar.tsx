@@ -1,8 +1,10 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import {
 	CalendarCheck,
+	ChevronRight,
 	ClipboardList,
 	LayoutDashboard,
+	MapPin,
 	Network,
 	Settings,
 	ShieldCheck,
@@ -10,6 +12,11 @@ import {
 	Waypoints,
 } from "lucide-react";
 import type { ComponentProps } from "react";
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@/components/ui/collapsible.tsx";
 import {
 	Sidebar,
 	SidebarContent,
@@ -21,7 +28,11 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
+	SidebarMenuSub,
+	SidebarMenuSubButton,
+	SidebarMenuSubItem,
 } from "@/components/ui/sidebar.tsx";
+import { AREA_GROUP_LABELS, areaGroup } from "@/db/schema/members.ts";
 import { APP_NAME } from "@/lib/app.ts";
 import { isAdmin } from "@/lib/permissions.ts";
 import { NavUser } from "./nav-user.tsx";
@@ -36,7 +47,10 @@ const navMain = [
 ] as const;
 
 /** Routes only an admin may open; the pages behind them reject leaders. */
-const navAdmin = [{ title: "Users", to: "/users", icon: ShieldCheck }] as const;
+const navAdmin = [
+	{ title: "Users", to: "/users", icon: ShieldCheck },
+	{ title: "Review Queue", to: "/review-queue", icon: ClipboardList },
+] as const;
 
 /**
  * The rest of the product per the spec. Rendered disabled rather than as links,
@@ -44,7 +58,6 @@ const navAdmin = [{ title: "Users", to: "/users", icon: ShieldCheck }] as const;
  */
 const navPlanned = [
 	{ title: "Leaders", icon: CalendarCheck },
-	{ title: "Review queue", icon: ClipboardList },
 	{ title: "Settings", icon: Settings },
 ] as const;
 
@@ -54,6 +67,9 @@ export function AppSidebar({
 }: ComponentProps<typeof Sidebar> & {
 	user: { name: string; email: string; role?: string | null };
 }) {
+	const { pathname } = useLocation();
+	const onAreasPage = pathname.startsWith("/areas");
+
 	return (
 		<Sidebar collapsible="offcanvas" {...props}>
 			<SidebarHeader>
@@ -101,6 +117,50 @@ export function AppSidebar({
 										</SidebarMenuItem>
 									))
 								: null}
+							{isAdmin(user) ? (
+								<Collapsible
+									defaultOpen={onAreasPage}
+									className="group/collapsible"
+								>
+									<SidebarMenuItem>
+										<CollapsibleTrigger asChild>
+											<SidebarMenuButton tooltip="Areas">
+												<MapPin />
+												<span>Areas</span>
+												<ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+											</SidebarMenuButton>
+										</CollapsibleTrigger>
+										<CollapsibleContent>
+											<SidebarMenuSub>
+												<SidebarMenuSubItem>
+													<SidebarMenuSubButton asChild>
+														<Link
+															to="/areas"
+															activeProps={{ "data-active": true }}
+															activeOptions={{ exact: true }}
+														>
+															<span>All areas</span>
+														</Link>
+													</SidebarMenuSubButton>
+												</SidebarMenuSubItem>
+												{areaGroup.enumValues.map((group) => (
+													<SidebarMenuSubItem key={group}>
+														<SidebarMenuSubButton asChild>
+															<Link
+																to="/areas/$areaGroup"
+																params={{ areaGroup: group }}
+																activeProps={{ "data-active": true }}
+															>
+																<span>{AREA_GROUP_LABELS[group]}</span>
+															</Link>
+														</SidebarMenuSubButton>
+													</SidebarMenuSubItem>
+												))}
+											</SidebarMenuSub>
+										</CollapsibleContent>
+									</SidebarMenuItem>
+								</Collapsible>
+							) : null}
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
