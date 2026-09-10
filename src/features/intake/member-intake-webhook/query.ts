@@ -2,41 +2,52 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
 import { insertMember } from "@/features/members/create-member/index.ts";
+import { buildIntakeBackfillPatch } from "./backfill.ts";
 import type { MemberIntakeValues } from "./schema.ts";
 
-export type MemberIntakeResult = { id: string; created: boolean };
+export type MemberIntakeResult = {
+	id: string;
+	created: boolean;
+	/** Only meaningful when `created` is false — were there missing fields to fill in? */
+	backfilledFields: string[];
+};
 
 /**
- * Creates a member from a form submission, or updates one that already
+ * Creates a member from a form submission, or backfills one that already
  * exists — matched by an exact, case-sensitive email match, since that's the
  * only field the form and the database are guaranteed to represent the same
- * way. A new member lands with no connect leader (so they surface in the
- * "Without a Connect" bucket, same as any other unassigned member) and
- * status "new", the same landing state a CSV import row gets.
+ * way. A repeat submission only fills in whatever the member row doesn't have
+ * an answer for yet (`buildIntakeBackfillPatch`); it never overwrites data
+ * that's already there, name included. A new member lands with no connect
+ * leader (so they surface in the "Without a Connect" bucket, same as any
+ * other unassigned member) and status "new", the same landing state a CSV
+ * import row gets.
  */
 export async function upsertMemberFromIntake(
 	values: MemberIntakeValues,
 ): Promise<MemberIntakeResult> {
 	if (values.email) {
 		const [existing] = await db
-			.select({ id: members.id })
+			.select({
+				id: members.id,
+				phone: members.phone,
+				gender: members.gender,
+				residence: members.residence,
+				fieldOfStudy: members.fieldOfStudy,
+				areaGroup: members.areaGroup,
+			})
 			.from(members)
 			.where(eq(members.email, values.email));
 
 		if (existing) {
-			await db
-				.update(members)
-				.set({
-					name: values.fullName,
-					phone: values.phone,
-					gender: values.gender,
-					residence: values.residence,
-					fieldOfStudy: values.fieldOfStudy,
-					areaGroup: values.areaGroup,
-				})
-				.where(eq(members.id, existing.id));
+			const patch = buildIntakeBackfillPatch(existing, values);
+			const backfilledFields = Object.keys(patch);
 
-			return { id: existing.id, created: false };
+			if (backfilledFields.length > 0) {
+				await db.update(members).set(patch).where(eq(members.id, existing.id));
+			}
+
+			return { id: existing.id, created: false, backfilledFields };
 		}
 	}
 
@@ -52,5 +63,5 @@ export async function upsertMemberFromIntake(
 		status: "new",
 	});
 
-	return { id: created.id, created: true };
+	return { id: created.id, created: true, backfilledFields: [] };
 }
