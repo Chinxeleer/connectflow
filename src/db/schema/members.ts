@@ -51,6 +51,30 @@ export const AREA_GROUP_LABELS: Record<AreaGroup, string> = {
 	braamfontein_west: "Braamfontein West",
 };
 
+/** Undergrad years one through six, plus postgrad as its own value rather than a seventh year. */
+export const yearOfStudy = pgEnum("year_of_study", [
+	"year_1",
+	"year_2",
+	"year_3",
+	"year_4",
+	"year_5",
+	"year_6",
+	"postgrad",
+]);
+
+export type YearOfStudy = (typeof yearOfStudy.enumValues)[number];
+
+/** Display label for each year of study, keyed by its stored enum value. */
+export const YEAR_OF_STUDY_LABELS: Record<YearOfStudy, string> = {
+	year_1: "Year 1",
+	year_2: "Year 2",
+	year_3: "Year 3",
+	year_4: "Year 4",
+	year_5: "Year 5",
+	year_6: "Year 6",
+	postgrad: "Postgrad",
+};
+
 export const members = pgTable(
 	"members",
 	{
@@ -74,6 +98,9 @@ export const members = pgTable(
 		 * set, on an existing row as much as an imported one.
 		 */
 		areaGroup: areaGroup("area_group"),
+
+		/** Same backfilled-later convention: null until the member sets it. */
+		yearOfStudy: yearOfStudy("year_of_study"),
 
 		status: memberStatus("status").default("new").notNull(),
 

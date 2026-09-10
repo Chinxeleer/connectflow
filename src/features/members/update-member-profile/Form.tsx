@@ -26,6 +26,9 @@ import {
 	areaGroup,
 	type MemberStatus,
 	memberStatus,
+	YEAR_OF_STUDY_LABELS,
+	type YearOfStudy,
+	yearOfStudy,
 } from "@/db/schema/members.ts";
 import type { MemberDetail } from "../member-detail/query.ts";
 import { updateMemberProfile } from "./action.ts";
@@ -34,6 +37,7 @@ import { updateMemberProfileInputSchema } from "./schema.ts";
 
 /** Radix `Select.Item` cannot hold an empty-string value, so "not set" needs one. */
 const UNSET_AREA_GROUP = "__unset__";
+const UNSET_YEAR_OF_STUDY = "__unset__";
 
 function TextField({
 	field,
@@ -124,6 +128,7 @@ export function UpdateMemberProfileForm({
 			residence: member.residence ?? "",
 			fieldOfStudy: member.fieldOfStudy ?? "",
 			areaGroup: member.areaGroup,
+			yearOfStudy: member.yearOfStudy,
 			status: member.status,
 		},
 		validators: { onSubmit: updateMemberProfileInputSchema },
@@ -199,6 +204,39 @@ export function UpdateMemberProfileForm({
 									{areaGroup.enumValues.map((group) => (
 										<SelectItem key={group} value={group}>
 											{AREA_GROUP_LABELS[group]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<FieldError errors={field.state.meta.errors} />
+						</Field>
+					)}
+				</form.Field>
+
+				<form.Field name="yearOfStudy">
+					{(field) => (
+						<Field data-invalid={field.state.meta.errors.length > 0}>
+							<FieldLabel htmlFor={field.name}>Year of study</FieldLabel>
+							<Select
+								value={field.state.value ?? UNSET_YEAR_OF_STUDY}
+								onValueChange={(value) =>
+									field.handleChange(
+										value === UNSET_YEAR_OF_STUDY
+											? null
+											: (value as YearOfStudy),
+									)
+								}
+							>
+								<SelectTrigger id={field.name} className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value={UNSET_YEAR_OF_STUDY}>
+										<span className="text-muted-foreground">Not set</span>
+									</SelectItem>
+									{yearOfStudy.enumValues.map((year) => (
+										<SelectItem key={year} value={year}>
+											{YEAR_OF_STUDY_LABELS[year]}
 										</SelectItem>
 									))}
 								</SelectContent>

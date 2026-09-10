@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areaGroup, memberStatus } from "@/db/schema/members.ts";
+import { areaGroup, memberStatus, yearOfStudy } from "@/db/schema/members.ts";
 import {
 	updateMemberProfileInputSchema,
 	updateMemberProfileSchema,
@@ -18,6 +18,7 @@ const valid = {
 	residence: "Sunnyside",
 	fieldOfStudy: "Computer Science",
 	areaGroup: "parktown_east" as const,
+	yearOfStudy: "year_2" as const,
 	status: "assigned" as const,
 };
 
@@ -145,6 +146,29 @@ describe("updateMemberProfileSchema", () => {
 			updateMemberProfileSchema.safeParse({
 				...valid,
 				areaGroup: "somewhere_else",
+			}).success,
+		).toBe(false);
+	});
+
+	it.each(yearOfStudy.enumValues)("accepts the %s year of study", (year) => {
+		expect(
+			updateMemberProfileSchema.safeParse({ ...valid, yearOfStudy: year })
+				.success,
+		).toBe(true);
+	});
+
+	it("accepts a null year of study as not yet set", () => {
+		expect(
+			updateMemberProfileSchema.safeParse({ ...valid, yearOfStudy: null })
+				.success,
+		).toBe(true);
+	});
+
+	it("rejects an unknown year of study rather than silently defaulting", () => {
+		expect(
+			updateMemberProfileSchema.safeParse({
+				...valid,
+				yearOfStudy: "year_7",
 			}).success,
 		).toBe(false);
 	});

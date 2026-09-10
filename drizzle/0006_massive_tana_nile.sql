@@ -1,0 +1,2 @@
+CREATE TYPE "public"."year_of_study" AS ENUM('year_1', 'year_2', 'year_3', 'year_4', 'year_5', 'year_6', 'postgrad');--> statement-breakpoint
+ALTER TABLE "members" ADD COLUMN "year_of_study" "year_of_study";
