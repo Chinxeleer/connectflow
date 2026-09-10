@@ -6,6 +6,7 @@ import {
 import type { MemberIntakeValues } from "./schema.ts";
 
 const emptyExisting: ExistingMemberFields = {
+	email: null,
 	phone: null,
 	gender: null,
 	residence: null,
@@ -15,6 +16,7 @@ const emptyExisting: ExistingMemberFields = {
 };
 
 const fullExisting: ExistingMemberFields = {
+	email: "ada.original@example.com",
 	phone: "0700000000",
 	gender: "female",
 	residence: "Hall 3",
@@ -38,6 +40,7 @@ const incoming: MemberIntakeValues = {
 describe("buildIntakeBackfillPatch", () => {
 	it("fills in every field when the existing row has nothing set", () => {
 		expect(buildIntakeBackfillPatch(emptyExisting, incoming)).toEqual({
+			email: "ada@example.com",
 			phone: "0711111111",
 			gender: "male",
 			residence: "Hall 5",
@@ -77,6 +80,7 @@ describe("buildIntakeBackfillPatch", () => {
 		};
 
 		expect(buildIntakeBackfillPatch(emptyExisting, blankIncoming)).toEqual({
+			email: "ada@example.com",
 			areaGroup: "parktown_east",
 		});
 	});
@@ -92,9 +96,25 @@ describe("buildIntakeBackfillPatch", () => {
 		});
 	});
 
-	it("does not include name or email — those are never backfilled here", () => {
+	it("fills email only when the member had none — never overwrites an existing one", () => {
+		expect(
+			buildIntakeBackfillPatch({ ...emptyExisting, email: null }, incoming),
+		).toMatchObject({ email: "ada@example.com" });
+
+		expect(buildIntakeBackfillPatch(fullExisting, incoming)).not.toHaveProperty(
+			"email",
+		);
+	});
+
+	it("never touches email when the incoming submission didn't give one", () => {
+		const blankEmail: MemberIntakeValues = { ...incoming, email: null };
+		expect(
+			buildIntakeBackfillPatch(emptyExisting, blankEmail),
+		).not.toHaveProperty("email");
+	});
+
+	it("does not include name — that's never backfilled here", () => {
 		const patch = buildIntakeBackfillPatch(emptyExisting, incoming);
 		expect(patch).not.toHaveProperty("name");
-		expect(patch).not.toHaveProperty("email");
 	});
 });

@@ -25,8 +25,8 @@ export async function handleMemberIntakeWebhook(
 				reason: result.created
 					? `created member ${result.id}`
 					: result.backfilledFields.length > 0
-						? `matched existing member ${result.id} by email, backfilled: ${result.backfilledFields.join(", ")}`
-						: `matched existing member ${result.id} by email, nothing missing to backfill`,
+						? `matched existing member ${result.id} by ${result.matchedBy}, backfilled: ${result.backfilledFields.join(", ")}`
+						: `matched existing member ${result.id} by ${result.matchedBy}, nothing missing to backfill`,
 				memberId: result.id,
 			};
 		},

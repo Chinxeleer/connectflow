@@ -2,6 +2,7 @@ import type { AreaGroup, YearOfStudy } from "@/db/schema/members.ts";
 import type { MemberIntakeValues } from "./schema.ts";
 
 export type ExistingMemberFields = {
+	email: string | null;
 	phone: string | null;
 	gender: string | null;
 	residence: string | null;
@@ -11,6 +12,7 @@ export type ExistingMemberFields = {
 };
 
 export type IntakeBackfillPatch = Partial<{
+	email: string;
 	phone: string;
 	gender: string;
 	residence: string;
@@ -20,12 +22,18 @@ export type IntakeBackfillPatch = Partial<{
 }>;
 
 /**
- * What a repeat form submission should change on a member matched by email:
+ * What a repeat form submission should change on a member it matched:
  * only the fields the member row doesn't have an answer for yet. A second
  * submission — a correction, a resend, the member filling in more of the
  * form the second time round — must never clobber data that's already
  * there, including with blanks; `name` isn't part of this at all, since it's
  * required on the row and therefore never "missing".
+ *
+ * `email` is included here now that a member can be matched by name alone
+ * (see `match.ts`) — a name match only ever happens against a member with no
+ * email on file, so this is how that member's first real email gets
+ * recorded, and how they become eligible for the faster, safer email match
+ * on their next submission.
  */
 export function buildIntakeBackfillPatch(
 	existing: ExistingMemberFields,
@@ -33,6 +41,9 @@ export function buildIntakeBackfillPatch(
 ): IntakeBackfillPatch {
 	const patch: IntakeBackfillPatch = {};
 
+	if (existing.email === null && incoming.email !== null) {
+		patch.email = incoming.email;
+	}
 	if (existing.phone === null && incoming.phone !== null) {
 		patch.phone = incoming.phone;
 	}
