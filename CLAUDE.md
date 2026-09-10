@@ -116,7 +116,7 @@ Two separate mechanisms; pick by where the value is read:
 For production, secrets go in via `wrangler secret put <NAME>`; non-secret vars go in `wrangler.jsonc` under `vars`.
 
 ### Deployment
-Cloudflare Workers via `@cloudflare/vite-plugin` (`viteEnvironment: { name: 'ssr' }`) and `wrangler.jsonc`, whose `main` points at `@tanstack/react-start/server-entry` and whose `name` (`connect`) must match the Worker's name in the Cloudflare dashboard — Workers Builds flags a drift between the two rather than deploying under a different name. KV/D1/R2/DO bindings would be added there. Plugin order in `vite.config.ts` matters — `devtools()` must stay first.
+Cloudflare Workers via `@cloudflare/vite-plugin` (`viteEnvironment: { name: 'ssr' }`) and `wrangler.jsonc`, whose `main` points at `@tanstack/react-start/server-entry` and whose `name` (`connectflow`) must match the Worker's name in the Cloudflare dashboard — Workers Builds flags a drift between the two rather than deploying under a different name. KV/D1/R2/DO bindings would be added there. Plugin order in `vite.config.ts` matters — `devtools()` must stay first.
 
 ## Libraries & Dependencies
 
