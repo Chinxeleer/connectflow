@@ -20,6 +20,12 @@ export type WebhookHandlerResult = {
  *
  * Auth runs *before* validation so a caller without the secret cannot use
  * this endpoint to probe what a valid payload looks like.
+ *
+ * Every step also prints to the console with a `[webhook:<source>]` prefix —
+ * greppable in Cloudflare's live Logs / `wrangler tail` while a real
+ * submission is in flight, which is faster to watch than querying
+ * `webhook_logs` after the fact. The DB row is still the durable record;
+ * this is only for watching it happen.
  */
 export async function handleGoogleFormsWebhook<T>(
 	request: Request,
@@ -29,18 +35,24 @@ export async function handleGoogleFormsWebhook<T>(
 		handle: (data: T) => Promise<WebhookHandlerResult>;
 	},
 ): Promise<Response> {
+	const tag = `[webhook:${options.source}]`;
+
 	const rawText = await request.text();
+	console.log(`${tag} received`, rawText);
+
 	let rawBody: unknown;
 	try {
 		rawBody = rawText.length > 0 ? JSON.parse(rawText) : undefined;
 	} catch {
 		rawBody = { raw: rawText };
+		console.error(`${tag} body was not valid JSON`);
 	}
 
 	try {
 		requireWebhookSecret(request);
 	} catch (error) {
 		if (error instanceof WebhookAuthError) {
+			console.error(`${tag} rejected: ${error.message}`);
 			await logWebhookEvent({
 				source: options.source,
 				outcome: "rejected",
@@ -57,6 +69,7 @@ export async function handleGoogleFormsWebhook<T>(
 		const reason = parsed.error.issues
 			.map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
 			.join("; ");
+		console.error(`${tag} rejected: ${reason || "Invalid payload."}`, rawBody);
 		await logWebhookEvent({
 			source: options.source,
 			outcome: "rejected",
@@ -70,6 +83,7 @@ export async function handleGoogleFormsWebhook<T>(
 	}
 
 	const result = await options.handle(parsed.data);
+	console.log(`${tag} accepted: ${result.reason}`);
 	await logWebhookEvent({
 		source: options.source,
 		outcome: "accepted",
