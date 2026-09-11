@@ -24,15 +24,18 @@ const optionalText = z
 /**
  * Resolves a choice question's answer to the enum value it's stored as.
  * Google Forms has no separate value/label for a multiple-choice question —
- * the payload carries whatever text the option displays ("Main (Central)"),
- * not the slug we store ("main_central") — so this accepts either, matching
- * the label case-insensitively since form authors won't always match it
- * exactly.
+ * the payload carries whatever text the option displays, not the slug we
+ * store — so this accepts either, matching the label case-insensitively
+ * since form authors won't always match it exactly. `aliases` covers the
+ * remaining gap: real option text that doesn't resemble the stored label at
+ * all (different word order, abbreviated, reworded) — confirmed against the
+ * actual live form rather than guessed.
  */
 function resolveEnumChoice<T extends string>(
 	enumValues: readonly T[],
 	labels: Record<T, string>,
 	raw: string,
+	aliases: Record<string, T> = {},
 ): T | null {
 	const trimmed = raw.trim();
 	if ((enumValues as readonly string[]).includes(trimmed)) {
@@ -40,10 +43,12 @@ function resolveEnumChoice<T extends string>(
 	}
 
 	const normalized = trimmed.toLowerCase();
-	return (
-		enumValues.find((value) => labels[value].toLowerCase() === normalized) ??
-		null
+	const labelMatch = enumValues.find(
+		(value) => labels[value].toLowerCase() === normalized,
 	);
+	if (labelMatch) return labelMatch;
+
+	return aliases[normalized] ?? null;
 }
 
 /** A choice field that's allowed to be blank/unanswered. */
@@ -51,6 +56,7 @@ function optionalEnumChoice<T extends string>(
 	enumValues: readonly T[],
 	labels: Record<T, string>,
 	fieldName: string,
+	aliases?: Record<string, T>,
 ) {
 	return z
 		.string()
@@ -59,7 +65,7 @@ function optionalEnumChoice<T extends string>(
 			const raw = (value ?? "").trim();
 			if (raw === "") return null;
 
-			const resolved = resolveEnumChoice(enumValues, labels, raw);
+			const resolved = resolveEnumChoice(enumValues, labels, raw, aliases);
 			if (!resolved) {
 				ctx.addIssue({
 					code: "custom",
@@ -76,6 +82,7 @@ function requiredEnumChoice<T extends string>(
 	enumValues: readonly T[],
 	labels: Record<T, string>,
 	fieldName: string,
+	aliases?: Record<string, T>,
 ) {
 	return z
 		.string()
@@ -83,7 +90,7 @@ function requiredEnumChoice<T extends string>(
 		.transform((value, ctx) => {
 			const raw = (value ?? "").trim();
 			const resolved =
-				raw === "" ? null : resolveEnumChoice(enumValues, labels, raw);
+				raw === "" ? null : resolveEnumChoice(enumValues, labels, raw, aliases);
 			if (!resolved) {
 				ctx.addIssue({
 					code: "custom",
@@ -94,6 +101,15 @@ function requiredEnumChoice<T extends string>(
 			return resolved;
 		});
 }
+
+/**
+ * The area group question's live options don't all match `AREA_GROUP_LABELS`
+ * verbatim — confirmed directly against the form. Keyed lowercase to match
+ * how `resolveEnumChoice` normalises before checking aliases.
+ */
+const AREA_GROUP_ALIASES: Record<string, AreaGroup> = {
+	"central(main)": "main_central",
+};
 
 /**
  * The Google Form's "new member" response, as the Apps Script trigger POSTs
@@ -126,6 +142,7 @@ export const memberIntakeWebhookSchema = z.object({
 		areaGroup.enumValues,
 		AREA_GROUP_LABELS,
 		"areaGroup",
+		AREA_GROUP_ALIASES,
 	),
 	submittedAt: z.iso.datetime({ offset: true }),
 });

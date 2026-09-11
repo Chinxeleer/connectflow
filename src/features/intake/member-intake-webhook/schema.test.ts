@@ -99,6 +99,21 @@ describe("memberIntakeWebhookSchema", () => {
 		if (result.success) expect(result.data.areaGroup).toBe("main_central");
 	});
 
+	// The live form's actual option text — confirmed directly against it, not
+	// guessed. Case-insensitive too, since Google Forms is user-typed text.
+	it.each([
+		"Central(Main)",
+		"central(main)",
+		"CENTRAL(MAIN)",
+	])('resolves the live form\'s "%s" option to main_central', (raw) => {
+		const result = memberIntakeWebhookSchema.safeParse({
+			...valid,
+			areaGroup: raw,
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.areaGroup).toBe("main_central");
+	});
+
 	it("rejects an area group outside the fixed five", () => {
 		expect(
 			memberIntakeWebhookSchema.safeParse({ ...valid, areaGroup: "downtown" })
