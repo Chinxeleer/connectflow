@@ -166,6 +166,23 @@ describe("memberIntakeWebhookSchema", () => {
 		).toBe(true);
 	});
 
+	// The live form's actual options for years 1-6 are bare digits, not "Year N".
+	it.each([
+		["1", "year_1"],
+		["2", "year_2"],
+		["3", "year_3"],
+		["4", "year_4"],
+		["5", "year_5"],
+		["6", "year_6"],
+	] as const)('resolves the live form\'s "%s" option to %s', (raw, expected) => {
+		const result = memberIntakeWebhookSchema.safeParse({
+			...valid,
+			yearOfStudy: raw,
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.yearOfStudy).toBe(expected);
+	});
+
 	it("rejects a year of study outside the fixed set", () => {
 		expect(
 			memberIntakeWebhookSchema.safeParse({ ...valid, yearOfStudy: "year_9" })

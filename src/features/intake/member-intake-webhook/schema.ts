@@ -112,6 +112,21 @@ const AREA_GROUP_ALIASES: Record<string, AreaGroup> = {
 };
 
 /**
+ * The year of study question's live options are bare digits ("3"), not the
+ * "Year 3" text `YEAR_OF_STUDY_LABELS` has — confirmed directly against a
+ * real submission. Only "Postgrad" happens to already match its label
+ * verbatim.
+ */
+const YEAR_OF_STUDY_ALIASES: Record<string, YearOfStudy> = {
+	"1": "year_1",
+	"2": "year_2",
+	"3": "year_3",
+	"4": "year_4",
+	"5": "year_5",
+	"6": "year_6",
+};
+
+/**
  * The Google Form's "new member" response, as the Apps Script trigger POSTs
  * it. `areaGroup` is required — unlike the manual add form, this is the one
  * intake path that always has an answer for it, since the form asks for it
@@ -137,6 +152,7 @@ export const memberIntakeWebhookSchema = z.object({
 		yearOfStudy.enumValues,
 		YEAR_OF_STUDY_LABELS,
 		"yearOfStudy",
+		YEAR_OF_STUDY_ALIASES,
 	),
 	areaGroup: requiredEnumChoice(
 		areaGroup.enumValues,
