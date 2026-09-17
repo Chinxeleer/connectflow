@@ -2,7 +2,7 @@ import { eq, isNull } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
 import { pendingRemovals } from "@/db/schema/pending-removals.ts";
-import type { NameCandidate } from "./match.ts";
+import type { NameOnlyCandidate } from "@/lib/person-matching.ts";
 
 /**
  * Everyone eligible to be matched against a removal request. Excludes
@@ -11,7 +11,7 @@ import type { NameCandidate } from "./match.ts";
  * `pending_removals` for a human to look at, rather than silently re-running
  * (or erroring on) a removal that already happened.
  */
-export async function selectRemovalCandidates(): Promise<NameCandidate[]> {
+export async function selectRemovalCandidates(): Promise<NameOnlyCandidate[]> {
 	return db
 		.select({ id: members.id, name: members.name })
 		.from(members)

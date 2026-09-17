@@ -1,4 +1,5 @@
 export * from "./auth.ts";
+export * from "./intake-reconciliations.ts";
 export * from "./members.ts";
 export * from "./pending-removals.ts";
 export * from "./todos.ts";

@@ -32,7 +32,8 @@ export async function handleGoogleFormsWebhook<T>(
 	options: {
 		source: WebhookLogSource;
 		schema: z.ZodType<T>;
-		handle: (data: T) => Promise<WebhookHandlerResult>;
+		/** `rawBody` is the payload exactly as received, before validation — for handlers that need to keep it (e.g. a staged reconciliation row). */
+		handle: (data: T, rawBody: unknown) => Promise<WebhookHandlerResult>;
 	},
 ): Promise<Response> {
 	const tag = `[webhook:${options.source}]`;
@@ -82,7 +83,7 @@ export async function handleGoogleFormsWebhook<T>(
 		);
 	}
 
-	const result = await options.handle(parsed.data);
+	const result = await options.handle(parsed.data, rawBody);
 	console.log(`${tag} accepted: ${result.reason}`);
 	await logWebhookEvent({
 		source: options.source,

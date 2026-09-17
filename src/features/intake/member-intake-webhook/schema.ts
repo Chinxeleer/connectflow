@@ -128,17 +128,27 @@ const YEAR_OF_STUDY_ALIASES: Record<string, YearOfStudy> = {
 
 /**
  * The Google Form's "new member" response, as the Apps Script trigger POSTs
- * it. `areaGroup` is required — unlike the manual add form, this is the one
+ * it. Separate `firstName`/`surname` rather than one combined name — matching
+ * the removal webhook's existing shape, and required because `matchPerson`
+ * (see `@/lib/person-matching.ts`) compares the two independently: a close
+ * first name paired with an unrelated surname is not a name match at all.
+ *
+ * `areaGroup` is required — unlike the manual add form, this is the one
  * intake path that always has an answer for it, since the form asks for it
  * directly. `yearOfStudy` follows `fieldOfStudy`'s convention instead: optional,
  * blank is a valid answer, and a blank submission never overwrites an existing
  * one — see `backfill.ts`.
  */
 export const memberIntakeWebhookSchema = z.object({
-	fullName: z
+	firstName: z
 		.string()
 		.trim()
-		.min(2, "fullName is required.")
+		.min(1, "firstName is required.")
+		.max(200, "That name is unreasonably long."),
+	surname: z
+		.string()
+		.trim()
+		.min(1, "surname is required.")
 		.max(200, "That name is unreasonably long."),
 	phone: optionalText,
 	email: optionalText.refine(
@@ -177,7 +187,8 @@ const blankToNull = (value: string) => (value.length > 0 ? value : null);
  */
 export const memberIntakeSchema = memberIntakeWebhookSchema.transform(
 	(data) => ({
-		fullName: data.fullName,
+		firstName: data.firstName,
+		surname: data.surname,
 		phone: blankToNull(data.phone),
 		email: blankToNull(data.email),
 		gender: blankToNull(data.gender),

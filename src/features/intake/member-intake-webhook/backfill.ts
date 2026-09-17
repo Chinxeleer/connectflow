@@ -29,11 +29,10 @@ export type IntakeBackfillPatch = Partial<{
  * there, including with blanks; `name` isn't part of this at all, since it's
  * required on the row and therefore never "missing".
  *
- * `email` is included here now that a member can be matched by name alone
- * (see `match.ts`) — a name match only ever happens against a member with no
- * email on file, so this is how that member's first real email gets
- * recorded, and how they become eligible for the faster, safer email match
- * on their next submission.
+ * `email` is included here so that a member matched some other way (phone,
+ * or a fuzzy name match resolved by an admin) gets their first real email
+ * recorded, becoming eligible for the faster, more precise email match on
+ * their next submission — see `matchPerson` in `@/lib/person-matching.ts`.
  */
 export function buildIntakeBackfillPatch(
 	existing: ExistingMemberFields,

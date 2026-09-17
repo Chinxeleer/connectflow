@@ -4,7 +4,6 @@ export {
 	type ExistingMemberFields,
 	type IntakeBackfillPatch,
 } from "./backfill.ts";
-export { findFullNameMatches, type NameCandidate } from "./match.ts";
 export { type MemberIntakeResult, upsertMemberFromIntake } from "./query.ts";
 export {
 	type MemberIntakeValues,

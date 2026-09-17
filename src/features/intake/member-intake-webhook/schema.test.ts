@@ -8,7 +8,8 @@ import {
 import { memberIntakeSchema, memberIntakeWebhookSchema } from "./schema.ts";
 
 const valid = {
-	fullName: "Ada Lovelace",
+	firstName: "Ada",
+	surname: "Lovelace",
 	phone: "0700000000",
 	email: "ada@example.com",
 	gender: "female",
@@ -24,12 +25,12 @@ describe("memberIntakeWebhookSchema", () => {
 		expect(memberIntakeWebhookSchema.safeParse(valid).success).toBe(true);
 	});
 
-	it("requires a fullName", () => {
+	it("requires a non-empty firstName and surname", () => {
 		expect(
-			memberIntakeWebhookSchema.safeParse({ ...valid, fullName: "" }).success,
+			memberIntakeWebhookSchema.safeParse({ ...valid, firstName: "" }).success,
 		).toBe(false);
 		expect(
-			memberIntakeWebhookSchema.safeParse({ ...valid, fullName: "A" }).success,
+			memberIntakeWebhookSchema.safeParse({ ...valid, surname: "" }).success,
 		).toBe(false);
 	});
 
@@ -44,9 +45,10 @@ describe("memberIntakeWebhookSchema", () => {
 	});
 
 	it("defaults every optional field to blank when omitted", () => {
-		const { fullName, areaGroup: group, submittedAt } = valid;
+		const { firstName, surname, areaGroup: group, submittedAt } = valid;
 		const result = memberIntakeWebhookSchema.safeParse({
-			fullName,
+			firstName,
+			surname,
 			areaGroup: group,
 			submittedAt,
 		});
@@ -208,7 +210,8 @@ describe("memberIntakeWebhookSchema", () => {
 describe("memberIntakeSchema", () => {
 	it("turns blank optional fields into null", () => {
 		const parsed = memberIntakeSchema.parse({
-			fullName: "Ada Lovelace",
+			firstName: "Ada",
+			surname: "Lovelace",
 			phone: "",
 			email: "",
 			gender: "",
@@ -231,7 +234,8 @@ describe("memberIntakeSchema", () => {
 
 	it("turns null optional fields into null, the same as blank", () => {
 		const parsed = memberIntakeSchema.parse({
-			fullName: "Ada Lovelace",
+			firstName: "Ada",
+			surname: "Lovelace",
 			phone: null,
 			email: null,
 			gender: null,

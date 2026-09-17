@@ -50,6 +50,13 @@
       "when": 1789054340266,
       "tag": "0006_massive_tana_nile",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789681763534,
+      "tag": "0007_minor_kylun",
+      "breakpoints": true
     }
   ]
 }

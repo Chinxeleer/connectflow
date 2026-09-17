@@ -26,7 +26,8 @@ const fullExisting: ExistingMemberFields = {
 };
 
 const incoming: MemberIntakeValues = {
-	fullName: "Ada Lovelace",
+	firstName: "Ada",
+	surname: "Lovelace",
 	phone: "0711111111",
 	email: "ada@example.com",
 	gender: "male",

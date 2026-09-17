@@ -1,22 +1,30 @@
 import { eq, isNull } from "drizzle-orm";
 import { db } from "@/db/index.ts";
+import {
+	intakeReconciliationCandidates,
+	intakeReconciliations,
+	type JsonValue,
+} from "@/db/schema/intake-reconciliations.ts";
 import { members } from "@/db/schema/members.ts";
 import { insertMember } from "@/features/members/create-member/index.ts";
+import {
+	type MatchCandidatePerson,
+	matchPerson,
+} from "@/lib/person-matching.ts";
 import {
 	buildIntakeBackfillPatch,
 	type ExistingMemberFields,
 } from "./backfill.ts";
-import { findFullNameMatches } from "./match.ts";
 import type { MemberIntakeValues } from "./schema.ts";
 
-export type MemberIntakeResult = {
-	id: string;
-	created: boolean;
-	/** Only meaningful when `created` is false — were there missing fields to fill in? */
-	backfilledFields: string[];
-	/** How the existing member was found, for the audit log. Absent when created. */
-	matchedBy?: "email" | "name";
-};
+export type MemberIntakeResult =
+	| { outcome: "created"; memberId: string }
+	| { outcome: "updated"; memberId: string; backfilledFields: string[] }
+	| {
+			outcome: "needs_review";
+			reconciliationId: string;
+			candidateCount: number;
+	  };
 
 const existingMemberColumns = {
 	id: members.id,
@@ -32,86 +40,109 @@ const existingMemberColumns = {
 
 type ExistingMemberRow = { id: string; name: string } & ExistingMemberFields;
 
-async function backfillExisting(
-	existing: ExistingMemberRow,
-	values: MemberIntakeValues,
-	matchedBy: "email" | "name",
-): Promise<MemberIntakeResult> {
-	const patch = buildIntakeBackfillPatch(existing, values);
-	const backfilledFields = Object.keys(patch);
-
-	if (backfilledFields.length > 0) {
-		await db.update(members).set(patch).where(eq(members.id, existing.id));
-	}
-
-	return { id: existing.id, created: false, backfilledFields, matchedBy };
+/**
+ * Everyone eligible to be matched against — excludes already-removed
+ * members, the same rule the removal webhook applies to its own candidate
+ * pool. A removed person re-submitting the form should read as "not on file"
+ * (CONFIDENT_CREATE), not silently write new data onto a soft-deleted row.
+ */
+async function selectMatchCandidates(): Promise<MatchCandidatePerson[]> {
+	return db
+		.select({
+			id: members.id,
+			name: members.name,
+			email: members.email,
+			phone: members.phone,
+		})
+		.from(members)
+		.where(isNull(members.removedAt));
 }
 
 /**
- * Creates a member from a form submission, or backfills one that already
- * exists. Two ways to find that existing member, tried in order:
- *
- * 1. Exact email match — the precise identifier, when the form gave one.
- * 2. Full-name match (case/whitespace-insensitive, `findFullNameMatches`),
- *    but *only* against members with no email on file. Many existing rows
- *    (CSV imports especially) were never given one, so email-only matching
- *    could never find them; name is the identifier that's actually reliable
- *    for them. Restricting this to email-less members means a name
- *    coincidence can never overwrite someone who has already been
- *    identified by email — only an "unclaimed" record is up for grabs by
- *    name.
- *
- * An ambiguous name match (several email-less members share a name) is
- * treated the same as no match at all: a new member is created rather than
- * guessing which one the form meant. This never loses data — the ambiguity
- * just means two rows exist until a human reconciles them — which is the
- * safe direction to fail in, unlike guessing wrong and silently attaching a
- * stranger's answers to someone else's profile.
- *
- * A repeat submission only fills in whatever the member row doesn't have an
- * answer for yet (`buildIntakeBackfillPatch`); it never overwrites data
- * that's already there, name included. A new member lands with no connect
- * leader (so they surface in the "Without a Connect" bucket, same as any
- * other unassigned member) and status "new", the same landing state a CSV
- * import row gets.
+ * Creates a member, backfills one that `matchPerson` confidently identified,
+ * or — when it can't confidently decide — stages an `intake_reconciliations`
+ * row with every candidate it found and touches no person record at all.
+ * That last branch is the key change from the matching this replaced: an
+ * ambiguous or uncorroborated submission used to get resolved one way or the
+ * other automatically; now a human decides.
  */
 export async function upsertMemberFromIntake(
 	values: MemberIntakeValues,
+	rawPayload: JsonValue,
 ): Promise<MemberIntakeResult> {
-	if (values.email) {
+	const candidates = await selectMatchCandidates();
+	const match = matchPerson(
+		{
+			firstName: values.firstName,
+			surname: values.surname,
+			email: values.email,
+			phone: values.phone,
+		},
+		candidates,
+	);
+
+	if (match.outcome === "CONFIDENT_CREATE") {
+		const created = await insertMember({
+			name: `${values.firstName} ${values.surname}`,
+			leaderId: null,
+			phone: values.phone,
+			email: values.email,
+			gender: values.gender,
+			residence: values.residence,
+			fieldOfStudy: values.fieldOfStudy,
+			areaGroup: values.areaGroup,
+			yearOfStudy: values.yearOfStudy,
+			status: "new",
+		});
+		return { outcome: "created", memberId: created.id };
+	}
+
+	if (match.outcome === "CONFIDENT_UPDATE") {
 		const [existing] = await db
 			.select(existingMemberColumns)
 			.from(members)
-			.where(eq(members.email, values.email));
+			.where(eq(members.id, match.personId));
 
-		if (existing) {
-			return backfillExisting(existing, values, "email");
+		if (!existing) {
+			throw new Error("Matched member no longer exists.");
 		}
+
+		const patch = buildIntakeBackfillPatch(
+			existing as ExistingMemberRow,
+			values,
+		);
+		const backfilledFields = Object.keys(patch);
+
+		if (backfilledFields.length > 0) {
+			await db.update(members).set(patch).where(eq(members.id, existing.id));
+		}
+
+		return { outcome: "updated", memberId: existing.id, backfilledFields };
 	}
 
-	const unclaimed = await db
-		.select(existingMemberColumns)
-		.from(members)
-		.where(isNull(members.email));
+	// NEEDS_REVIEW — stage it, touch nothing.
+	const [reconciliation] = await db
+		.insert(intakeReconciliations)
+		.values({ rawPayload })
+		.returning({ id: intakeReconciliations.id });
 
-	const nameMatches = findFullNameMatches(unclaimed, values.fullName);
-	if (nameMatches.length === 1) {
-		// biome-ignore lint/style/noNonNullAssertion: length === 1 by the check above
-		return backfillExisting(nameMatches[0]!, values, "name");
+	if (!reconciliation) {
+		throw new Error("Failed to record that intake submission.");
 	}
 
-	const created = await insertMember({
-		name: values.fullName,
-		leaderId: null,
-		phone: values.phone,
-		email: values.email,
-		gender: values.gender,
-		residence: values.residence,
-		fieldOfStudy: values.fieldOfStudy,
-		areaGroup: values.areaGroup,
-		yearOfStudy: values.yearOfStudy,
-		status: "new",
-	});
+	if (match.candidates.length > 0) {
+		await db.insert(intakeReconciliationCandidates).values(
+			match.candidates.map((candidate) => ({
+				reconciliationId: reconciliation.id,
+				personId: candidate.personId,
+				matchReason: candidate.matchReason,
+			})),
+		);
+	}
 
-	return { id: created.id, created: true, backfilledFields: [] };
+	return {
+		outcome: "needs_review",
+		reconciliationId: reconciliation.id,
+		candidateCount: match.candidates.length,
+	};
 }
