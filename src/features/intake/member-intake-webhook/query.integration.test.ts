@@ -34,6 +34,7 @@ function baseValues(
 		residence: null,
 		fieldOfStudy: null,
 		yearOfStudy: null,
+		ministry: null,
 		areaGroup: "main_central",
 		submittedAt: new Date(),
 		...overrides,

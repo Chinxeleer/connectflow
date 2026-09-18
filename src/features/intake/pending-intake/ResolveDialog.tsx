@@ -43,6 +43,7 @@ function candidateFields(
 		fieldOfStudy: candidate.fieldOfStudy,
 		areaGroup: candidate.areaGroup,
 		yearOfStudy: candidate.yearOfStudy,
+		ministry: candidate.ministry,
 	};
 }
 
@@ -175,6 +176,7 @@ export function ResolveIntakeReconciliationDialog({
 				fieldOfStudy: incoming.fieldOfStudy,
 				areaGroup: incoming.areaGroup,
 				yearOfStudy: incoming.yearOfStudy,
+				ministry: incoming.ministry,
 			}
 		: null;
 

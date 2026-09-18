@@ -49,6 +49,7 @@ export async function selectPendingIntakeReconciliations() {
 			fieldOfStudy: members.fieldOfStudy,
 			areaGroup: members.areaGroup,
 			yearOfStudy: members.yearOfStudy,
+			ministry: members.ministry,
 		})
 		.from(intakeReconciliationCandidates)
 		.innerJoin(members, eq(intakeReconciliationCandidates.personId, members.id))
@@ -169,6 +170,7 @@ export async function resolveReconciliationAsNew({
 				fieldOfStudy: values.fieldOfStudy,
 				areaGroup: values.areaGroup,
 				yearOfStudy: values.yearOfStudy,
+				ministry: values.ministry,
 				status: "new",
 			})
 			.returning({ id: members.id });

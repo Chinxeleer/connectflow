@@ -3,6 +3,9 @@ import {
 	AREA_GROUP_LABELS,
 	type AreaGroup,
 	areaGroup,
+	MINISTRY_LABELS,
+	type Ministry,
+	ministry,
 	YEAR_OF_STUDY_LABELS,
 	type YearOfStudy,
 	yearOfStudy,
@@ -58,6 +61,12 @@ function optionalEnumChoice<T extends string>(
 	labels: Record<T, string>,
 	fieldName: string,
 	aliases?: Record<string, T>,
+	/**
+	 * Option text that means "no answer", same as blank — e.g. ministry's
+	 * "Not yet allocated" option. Lowercased to match how `resolveEnumChoice`
+	 * normalises before checking `aliases`.
+	 */
+	nullOptions: readonly string[] = [],
 ) {
 	return z
 		.string()
@@ -65,6 +74,7 @@ function optionalEnumChoice<T extends string>(
 		.transform((value, ctx) => {
 			const raw = (value ?? "").trim();
 			if (raw === "") return null;
+			if (nullOptions.includes(raw.toLowerCase())) return null;
 
 			const resolved = resolveEnumChoice(enumValues, labels, raw, aliases);
 			if (!resolved) {
@@ -136,9 +146,13 @@ const YEAR_OF_STUDY_ALIASES: Record<string, YearOfStudy> = {
  *
  * `areaGroup` is required — unlike the manual add form, this is the one
  * intake path that always has an answer for it, since the form asks for it
- * directly. `yearOfStudy` follows `fieldOfStudy`'s convention instead: optional,
- * blank is a valid answer, and a blank submission never overwrites an existing
- * one — see `backfill.ts`.
+ * directly. `yearOfStudy` and `ministry` follow `fieldOfStudy`'s convention
+ * instead: optional, blank is a valid answer, and a blank submission never
+ * overwrites an existing one — see `backfill.ts`. `ministry` stays optional
+ * here even though the live form question is itself required — a form
+ * question can be made optional, reworded, or dropped without this schema
+ * needing to change in lockstep, and rejecting an otherwise-good submission
+ * over one missing field would be a worse outcome than storing it as null.
  */
 export const memberIntakeWebhookSchema = z.object({
 	firstName: requiredNameField("firstName"),
@@ -156,6 +170,16 @@ export const memberIntakeWebhookSchema = z.object({
 		YEAR_OF_STUDY_LABELS,
 		"yearOfStudy",
 		YEAR_OF_STUDY_ALIASES,
+	),
+	// The live form's fifth option, "Not yet allocated", is a real answer
+	// meaning "no ministry yet" — not an unrecognised one — confirmed
+	// directly against the form.
+	ministry: optionalEnumChoice(
+		ministry.enumValues,
+		MINISTRY_LABELS,
+		"ministry",
+		undefined,
+		["not yet allocated"],
 	),
 	areaGroup: requiredEnumChoice(
 		areaGroup.enumValues,
@@ -188,6 +212,7 @@ export const memberIntakeSchema = memberIntakeWebhookSchema.transform(
 		residence: blankToNull(data.residence),
 		fieldOfStudy: blankToNull(data.fieldOfStudy),
 		yearOfStudy: data.yearOfStudy as YearOfStudy | null,
+		ministry: data.ministry as Ministry | null,
 		areaGroup: data.areaGroup as AreaGroup,
 		submittedAt: new Date(data.submittedAt),
 	}),

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { areaGroup, memberStatus, yearOfStudy } from "@/db/schema/members.ts";
+import {
+	areaGroup,
+	memberStatus,
+	ministry,
+	yearOfStudy,
+} from "@/db/schema/members.ts";
 import {
 	updateMemberProfileInputSchema,
 	updateMemberProfileSchema,
@@ -19,6 +24,7 @@ const valid = {
 	fieldOfStudy: "Computer Science",
 	areaGroup: "parktown_east" as const,
 	yearOfStudy: "year_2" as const,
+	ministry: "band" as const,
 	status: "assigned" as const,
 };
 
@@ -170,6 +176,26 @@ describe("updateMemberProfileSchema", () => {
 				...valid,
 				yearOfStudy: "year_7",
 			}).success,
+		).toBe(false);
+	});
+
+	it.each(ministry.enumValues)("accepts the %s ministry", (option) => {
+		expect(
+			updateMemberProfileSchema.safeParse({ ...valid, ministry: option })
+				.success,
+		).toBe(true);
+	});
+
+	it("accepts a null ministry as not yet set", () => {
+		expect(
+			updateMemberProfileSchema.safeParse({ ...valid, ministry: null }).success,
+		).toBe(true);
+	});
+
+	it("rejects an unknown ministry rather than silently defaulting", () => {
+		expect(
+			updateMemberProfileSchema.safeParse({ ...valid, ministry: "catering" })
+				.success,
 		).toBe(false);
 	});
 

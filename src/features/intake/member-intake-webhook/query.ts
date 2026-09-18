@@ -36,6 +36,7 @@ const existingMemberColumns = {
 	fieldOfStudy: members.fieldOfStudy,
 	areaGroup: members.areaGroup,
 	yearOfStudy: members.yearOfStudy,
+	ministry: members.ministry,
 } as const;
 
 type ExistingMemberRow = { id: string; name: string } & ExistingMemberFields;
@@ -92,6 +93,7 @@ export async function upsertMemberFromIntake(
 			fieldOfStudy: values.fieldOfStudy,
 			areaGroup: values.areaGroup,
 			yearOfStudy: values.yearOfStudy,
+			ministry: values.ministry,
 			status: "new",
 		});
 		return { outcome: "created", memberId: created.id };

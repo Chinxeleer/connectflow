@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { areaGroup, yearOfStudy } from "@/db/schema/members.ts";
+import { areaGroup, ministry, yearOfStudy } from "@/db/schema/members.ts";
 
 /**
  * The fields a resolve-as-update-existing action may change. Every key is
@@ -16,6 +16,7 @@ export const intakeFieldPatchSchema = z
 		fieldOfStudy: z.string().trim().min(1).max(200),
 		areaGroup: z.enum(areaGroup.enumValues),
 		yearOfStudy: z.enum(yearOfStudy.enumValues),
+		ministry: z.enum(ministry.enumValues),
 	})
 	.partial();
 

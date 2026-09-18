@@ -5,7 +5,8 @@ export type IntakeFieldKey =
 	| "residence"
 	| "fieldOfStudy"
 	| "areaGroup"
-	| "yearOfStudy";
+	| "yearOfStudy"
+	| "ministry";
 
 export type FieldComparison = {
 	field: IntakeFieldKey;
@@ -30,6 +31,7 @@ export type PersonFields = {
 	fieldOfStudy: string | null;
 	areaGroup: string | null;
 	yearOfStudy: string | null;
+	ministry: string | null;
 };
 
 const FIELD_KEYS: IntakeFieldKey[] = [
@@ -40,6 +42,7 @@ const FIELD_KEYS: IntakeFieldKey[] = [
 	"fieldOfStudy",
 	"areaGroup",
 	"yearOfStudy",
+	"ministry",
 ];
 
 /**

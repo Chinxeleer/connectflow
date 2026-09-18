@@ -38,6 +38,7 @@ function baseValues(
 		residence: null,
 		fieldOfStudy: null,
 		yearOfStudy: null,
+		ministry: null,
 		areaGroup: "main_central",
 		submittedAt: new Date(),
 		...overrides,
@@ -55,6 +56,7 @@ function webhookPayloadFrom(values: MemberIntakeValues) {
 		residence: values.residence ?? "",
 		fieldOfStudy: values.fieldOfStudy ?? "",
 		yearOfStudy: values.yearOfStudy ?? "",
+		ministry: values.ministry ?? "",
 		areaGroup: values.areaGroup,
 		submittedAt: values.submittedAt.toISOString(),
 	};
@@ -133,6 +135,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
 					fieldOfStudy: null,
 					areaGroup: null,
 					yearOfStudy: null,
+					ministry: null,
 				},
 				{
 					phone: null,
@@ -142,6 +145,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
 					fieldOfStudy: null,
 					areaGroup: null,
 					yearOfStudy: null,
+					ministry: null,
 				},
 			);
 			expect(isApplyAllEligible(comparisons)).toBe(true);

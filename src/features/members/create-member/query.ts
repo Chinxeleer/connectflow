@@ -2,6 +2,7 @@ import { db } from "@/db/index.ts";
 import type {
 	AreaGroup,
 	MemberStatus,
+	Ministry,
 	YearOfStudy,
 } from "@/db/schema/members.ts";
 import { members } from "@/db/schema/members.ts";
@@ -16,6 +17,7 @@ export type InsertMemberValues = {
 	fieldOfStudy: string | null;
 	areaGroup: AreaGroup | null;
 	yearOfStudy: YearOfStudy | null;
+	ministry?: Ministry | null;
 	status: MemberStatus;
 };
 

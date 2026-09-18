@@ -1,4 +1,4 @@
-import { asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
@@ -14,24 +14,28 @@ const report = alias(members, "report");
  * personally carrying.
  *
  * The inner join is what restricts this to actual leaders: a member nobody
- * reports to produces no rows and so never appears.
+ * reports to produces no rows and so never appears. `isOrganization` rows
+ * (e.g. "ENC") are excluded too — they aren't a person leading a connect,
+ * however many people report to them structurally.
  */
 export function selectConnectLeaders(scope: MemberScope) {
-	const where = memberScopeWithSelfWhere(scope);
+	const scopeWhere = memberScopeWithSelfWhere(scope);
+	const notOrganization = eq(members.isOrganization, false);
+	const where = scopeWhere ? and(scopeWhere, notOrganization) : notOrganization;
 
-	const query = db
+	return db
 		.select({
 			id: members.id,
 			name: members.name,
 			status: members.status,
+			ministry: members.ministry,
 			directMembers: count(report.id),
 		})
 		.from(members)
 		.innerJoin(report, eq(report.leaderId, members.id))
-		.groupBy(members.id, members.name, members.status)
+		.where(where)
+		.groupBy(members.id, members.name, members.status, members.ministry)
 		.orderBy(desc(count(report.id)), asc(members.name));
-
-	return where ? query.where(where) : query;
 }
 
 export type ConnectLeaderRow = Awaited<

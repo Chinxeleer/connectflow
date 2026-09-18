@@ -90,6 +90,7 @@ export const updateMemberProfile = createServerFn({ method: "POST" })
 					fieldOfStudy: data.fieldOfStudy,
 					areaGroup: data.areaGroup,
 					yearOfStudy: data.yearOfStudy,
+					ministry: data.ministry,
 					status: data.status,
 					leaderId: data.leaderId,
 				})

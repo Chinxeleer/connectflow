@@ -25,7 +25,10 @@ import {
 	type AreaGroup,
 	areaGroup,
 	type MemberStatus,
+	MINISTRY_LABELS,
+	type Ministry,
 	memberStatus,
+	ministry,
 	YEAR_OF_STUDY_LABELS,
 	type YearOfStudy,
 	yearOfStudy,
@@ -38,6 +41,7 @@ import { updateMemberProfileInputSchema } from "./schema.ts";
 /** Radix `Select.Item` cannot hold an empty-string value, so "not set" needs one. */
 const UNSET_AREA_GROUP = "__unset__";
 const UNSET_YEAR_OF_STUDY = "__unset__";
+const UNSET_MINISTRY = "__unset__";
 
 function TextField({
 	field,
@@ -129,6 +133,7 @@ export function UpdateMemberProfileForm({
 			fieldOfStudy: member.fieldOfStudy ?? "",
 			areaGroup: member.areaGroup,
 			yearOfStudy: member.yearOfStudy,
+			ministry: member.ministry,
 			status: member.status,
 		},
 		validators: { onSubmit: updateMemberProfileInputSchema },
@@ -217,36 +222,72 @@ export function UpdateMemberProfileForm({
 					</form.Field>
 				</div>
 
-				<form.Field name="areaGroup">
-					{(field) => (
-						<Field data-invalid={field.state.meta.errors.length > 0}>
-							<FieldLabel htmlFor={field.name}>Area group</FieldLabel>
-							<Select
-								value={field.state.value ?? UNSET_AREA_GROUP}
-								onValueChange={(value) =>
-									field.handleChange(
-										value === UNSET_AREA_GROUP ? null : (value as AreaGroup),
-									)
-								}
-							>
-								<SelectTrigger id={field.name} className="w-full">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value={UNSET_AREA_GROUP}>
-										<span className="text-muted-foreground">Not set</span>
-									</SelectItem>
-									{areaGroup.enumValues.map((group) => (
-										<SelectItem key={group} value={group}>
-											{AREA_GROUP_LABELS[group]}
+				<div className="grid gap-4 sm:grid-cols-2">
+					<form.Field name="areaGroup">
+						{(field) => (
+							<Field data-invalid={field.state.meta.errors.length > 0}>
+								<FieldLabel htmlFor={field.name}>Area group</FieldLabel>
+								<Select
+									value={field.state.value ?? UNSET_AREA_GROUP}
+									onValueChange={(value) =>
+										field.handleChange(
+											value === UNSET_AREA_GROUP ? null : (value as AreaGroup),
+										)
+									}
+								>
+									<SelectTrigger id={field.name} className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={UNSET_AREA_GROUP}>
+											<span className="text-muted-foreground">Not set</span>
 										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							<FieldError errors={field.state.meta.errors} />
-						</Field>
-					)}
-				</form.Field>
+										{areaGroup.enumValues.map((group) => (
+											<SelectItem key={group} value={group}>
+												{AREA_GROUP_LABELS[group]}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<FieldError errors={field.state.meta.errors} />
+							</Field>
+						)}
+					</form.Field>
+
+					<form.Field name="ministry">
+						{(field) => (
+							<Field data-invalid={field.state.meta.errors.length > 0}>
+								<FieldLabel htmlFor={field.name}>Ministry</FieldLabel>
+								<Select
+									value={field.state.value ?? UNSET_MINISTRY}
+									onValueChange={(value) =>
+										field.handleChange(
+											value === UNSET_MINISTRY ? null : (value as Ministry),
+										)
+									}
+								>
+									<SelectTrigger id={field.name} className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={UNSET_MINISTRY}>
+											<span className="text-muted-foreground">Not set</span>
+										</SelectItem>
+										{ministry.enumValues.map((option) => (
+											<SelectItem key={option} value={option}>
+												{MINISTRY_LABELS[option]}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<FieldDescription>
+									Every connect leader should be serving in one.
+								</FieldDescription>
+								<FieldError errors={field.state.meta.errors} />
+							</Field>
+						)}
+					</form.Field>
+				</div>
 
 				{permissions.canEditStatus ? (
 					<form.Field name="status">

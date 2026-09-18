@@ -13,6 +13,7 @@ const empty: PersonFields = {
 	fieldOfStudy: null,
 	areaGroup: null,
 	yearOfStudy: null,
+	ministry: null,
 };
 
 const full: PersonFields = {
@@ -23,12 +24,13 @@ const full: PersonFields = {
 	fieldOfStudy: "Mathematics",
 	areaGroup: "main_central",
 	yearOfStudy: "year_1",
+	ministry: "band",
 };
 
 describe("compareIntakeFields", () => {
 	it("lists every field as will_add when the existing profile is empty", () => {
 		const result = compareIntakeFields(empty, full);
-		expect(result).toHaveLength(7);
+		expect(result).toHaveLength(8);
 		expect(result.every((c) => c.status === "will_add")).toBe(true);
 	});
 

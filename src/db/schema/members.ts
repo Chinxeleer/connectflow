@@ -76,6 +76,28 @@ export const YEAR_OF_STUDY_LABELS: Record<YearOfStudy, string> = {
 	postgrad: "Postgrad",
 };
 
+/**
+ * The church ministries a connect leader serves in. Every leader is expected
+ * to be serving in one — surfaced on the leaders list, not enforced as a
+ * write-time rule, the same "backfilled later" treatment as `areaGroup`.
+ */
+export const ministry = pgEnum("ministry", [
+	"sound_and_setup",
+	"multimedia",
+	"hosting",
+	"band",
+]);
+
+export type Ministry = (typeof ministry.enumValues)[number];
+
+/** Display label for each ministry, keyed by its stored enum value. */
+export const MINISTRY_LABELS: Record<Ministry, string> = {
+	sound_and_setup: "Sound and Setup",
+	multimedia: "Multimedia",
+	hosting: "Hosting",
+	band: "Band",
+};
+
 export const members = pgTable(
 	"members",
 	{
@@ -112,6 +134,14 @@ export const members = pgTable(
 
 		/** Same backfilled-later convention: null until the member sets it. */
 		yearOfStudy: yearOfStudy("year_of_study"),
+
+		/**
+		 * Which church ministry this member serves in. Relevant mainly for
+		 * leaders — see `ministry`'s own doc comment — but not restricted to
+		 * them at the schema level, same "backfilled later" convention as
+		 * `areaGroup`/`yearOfStudy`.
+		 */
+		ministry: ministry("ministry"),
 
 		status: memberStatus("status").default("new").notNull(),
 

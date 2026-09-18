@@ -61,6 +61,7 @@ export function AssignLeaderButton({
 					fieldOfStudy: current.fieldOfStudy ?? "",
 					areaGroup: current.areaGroup,
 					yearOfStudy: current.yearOfStudy,
+					ministry: current.ministry,
 					status: current.status,
 				},
 			});

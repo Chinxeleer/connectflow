@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
 	AREA_GROUP_LABELS,
 	areaGroup,
+	MINISTRY_LABELS,
+	ministry,
 	YEAR_OF_STUDY_LABELS,
 	yearOfStudy,
 } from "@/db/schema/members.ts";
@@ -221,6 +223,57 @@ describe("memberIntakeWebhookSchema", () => {
 		expect(memberIntakeWebhookSchema.safeParse(withoutYear).success).toBe(true);
 	});
 
+	it.each(
+		ministry.enumValues,
+	)("accepts the %s ministry by its slug", (option) => {
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, ministry: option })
+				.success,
+		).toBe(true);
+	});
+
+	it.each(
+		ministry.enumValues,
+	)("accepts the %s ministry by its Google Forms label", (option) => {
+		const result = memberIntakeWebhookSchema.safeParse({
+			...valid,
+			ministry: MINISTRY_LABELS[option],
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.ministry).toBe(option);
+	});
+
+	// The live form's fifth option — confirmed directly against it — means
+	// "no ministry yet", the same as leaving the question blank.
+	it('resolves the live form\'s "Not yet allocated" option to no ministry', () => {
+		const result = memberIntakeWebhookSchema.safeParse({
+			...valid,
+			ministry: "Not yet allocated",
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.ministry).toBeNull();
+	});
+
+	it("accepts a blank or null ministry", () => {
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, ministry: "" }).success,
+		).toBe(true);
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, ministry: null }).success,
+		).toBe(true);
+	});
+
+	it("rejects a ministry outside the fixed set", () => {
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, ministry: "Catering" })
+				.success,
+		).toBe(false);
+	});
+
+	it("does not require a ministry — valid has no ministry key at all", () => {
+		expect(memberIntakeWebhookSchema.safeParse(valid).success).toBe(true);
+	});
+
 	it("rejects a submittedAt that is not a valid ISO datetime", () => {
 		expect(
 			memberIntakeWebhookSchema.safeParse({
@@ -242,6 +295,7 @@ describe("memberIntakeSchema", () => {
 			residence: "",
 			fieldOfStudy: "",
 			yearOfStudy: "",
+			ministry: "",
 			areaGroup: "main_central",
 			submittedAt: "2026-09-10T12:00:00Z",
 		});
@@ -253,6 +307,7 @@ describe("memberIntakeSchema", () => {
 			residence: null,
 			fieldOfStudy: null,
 			yearOfStudy: null,
+			ministry: null,
 		});
 	});
 
@@ -266,6 +321,7 @@ describe("memberIntakeSchema", () => {
 			residence: null,
 			fieldOfStudy: null,
 			yearOfStudy: null,
+			ministry: null,
 			areaGroup: "main_central",
 			submittedAt: "2026-09-10T12:00:00Z",
 		});
@@ -276,6 +332,7 @@ describe("memberIntakeSchema", () => {
 			gender: null,
 			residence: null,
 			fieldOfStudy: null,
+			ministry: null,
 			yearOfStudy: null,
 		});
 	});

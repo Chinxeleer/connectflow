@@ -33,6 +33,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table.tsx";
+import { MINISTRY_LABELS } from "@/db/schema/members.ts";
 import { connectLeadersQueryOptions } from "./action.ts";
 import type { ConnectLeaderRow } from "./query.ts";
 
@@ -68,6 +69,19 @@ const columns: ColumnDef<typeof features, ConnectLeaderRow>[] = [
 				{row.original.status}
 			</Badge>
 		),
+	},
+	{
+		accessorKey: "ministry",
+		header: "Ministry",
+		sortFn: "text",
+		cell: ({ row }) =>
+			row.original.ministry ? (
+				MINISTRY_LABELS[row.original.ministry]
+			) : (
+				<Badge variant="outline" className="font-normal">
+					Not serving anywhere yet
+				</Badge>
+			),
 	},
 	{
 		accessorKey: "directMembers",
