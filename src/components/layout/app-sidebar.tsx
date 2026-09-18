@@ -47,10 +47,7 @@ const navMain = [
 ] as const;
 
 /** Routes only an admin may open; the pages behind them reject leaders. */
-const navAdmin = [
-	{ title: "Users", to: "/users", icon: ShieldCheck },
-	{ title: "Review Queue", to: "/review-queue", icon: ClipboardList },
-] as const;
+const navAdmin = [{ title: "Users", to: "/users", icon: ShieldCheck }] as const;
 
 /**
  * The rest of the product per the spec. Rendered disabled rather than as links,
@@ -69,6 +66,7 @@ export function AppSidebar({
 }) {
 	const { pathname } = useLocation();
 	const onAreasPage = pathname.startsWith("/areas");
+	const onStagingPage = pathname.startsWith("/staging");
 
 	return (
 		<Sidebar collapsible="offcanvas" {...props}>
@@ -156,6 +154,56 @@ export function AppSidebar({
 														</SidebarMenuSubButton>
 													</SidebarMenuSubItem>
 												))}
+											</SidebarMenuSub>
+										</CollapsibleContent>
+									</SidebarMenuItem>
+								</Collapsible>
+							) : null}
+							{isAdmin(user) ? (
+								<Collapsible
+									defaultOpen={onStagingPage}
+									className="group/collapsible"
+								>
+									<SidebarMenuItem>
+										<CollapsibleTrigger asChild>
+											<SidebarMenuButton tooltip="Staging">
+												<ClipboardList />
+												<span>Staging</span>
+												<ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+											</SidebarMenuButton>
+										</CollapsibleTrigger>
+										<CollapsibleContent>
+											<SidebarMenuSub>
+												<SidebarMenuSubItem>
+													<SidebarMenuSubButton asChild>
+														<Link
+															to="/staging/unassigned"
+															activeProps={{ "data-active": true }}
+														>
+															<span>Unassigned</span>
+														</Link>
+													</SidebarMenuSubButton>
+												</SidebarMenuSubItem>
+												<SidebarMenuSubItem>
+													<SidebarMenuSubButton asChild>
+														<Link
+															to="/staging/needs-review"
+															activeProps={{ "data-active": true }}
+														>
+															<span>Needs Review</span>
+														</Link>
+													</SidebarMenuSubButton>
+												</SidebarMenuSubItem>
+												<SidebarMenuSubItem>
+													<SidebarMenuSubButton asChild>
+														<Link
+															to="/staging/removal-requests"
+															activeProps={{ "data-active": true }}
+														>
+															<span>Removal Requests</span>
+														</Link>
+													</SidebarMenuSubButton>
+												</SidebarMenuSubItem>
 											</SidebarMenuSub>
 										</CollapsibleContent>
 									</SidebarMenuItem>

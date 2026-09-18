@@ -27,3 +27,4 @@ export {
 	resolveAsCreateNewSchema,
 	resolveAsUpdateExistingSchema,
 } from "./schema.ts";
+export { PendingIntakeReconciliationsTable } from "./Table.tsx";

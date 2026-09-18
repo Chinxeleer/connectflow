@@ -34,19 +34,18 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table.tsx";
-import type { PendingRemovalStatus } from "@/db/schema/pending-removals.ts";
-import { pendingRemovalsQueryOptions } from "./action.ts";
-import { DismissPendingRemovalButton } from "./DismissButton.tsx";
-import type { PendingRemovalRow } from "./query.ts";
-import { ResolvePendingRemovalDialog } from "./ResolveDialog.tsx";
+import type { IntakeReconciliationStatus } from "@/db/schema/intake-reconciliations.ts";
+import { memberIntakeSchema } from "@/features/intake/member-intake-webhook/index.ts";
+import { pendingIntakeReconciliationsQueryOptions } from "./action.ts";
+import type { PendingIntakeReconciliation } from "./query.ts";
+import { ResolveIntakeReconciliationDialog } from "./ResolveDialog.tsx";
 
 const STATUS_VARIANT: Record<
-	PendingRemovalStatus,
+	IntakeReconciliationStatus,
 	"default" | "secondary" | "outline"
 > = {
 	pending: "default",
 	resolved: "secondary",
-	dismissed: "outline",
 };
 
 const dateFormat = new Intl.DateTimeFormat("en-GB", {
@@ -54,6 +53,13 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
 	month: "short",
 	year: "numeric",
 });
+
+function submittedName(reconciliation: PendingIntakeReconciliation): string {
+	const parsed = memberIntakeSchema.safeParse(reconciliation.rawPayload);
+	return parsed.success
+		? `${parsed.data.firstName} ${parsed.data.surname}`
+		: "(unreadable submission)";
+}
 
 const features = tableFeatures({
 	rowPaginationFeature,
@@ -72,22 +78,26 @@ const features = tableFeatures({
 	filterFns: { includesString: filterFn_includesString },
 });
 
-const columns: ColumnDef<typeof features, PendingRemovalRow>[] = [
+const columns: ColumnDef<typeof features, PendingIntakeReconciliation>[] = [
 	{
-		accessorKey: "firstName",
-		header: "First name",
+		id: "name",
+		header: "Submitted as",
+		accessorFn: (row) => submittedName(row),
 		sortFn: "text",
 	},
 	{
-		accessorKey: "surname",
-		header: "Surname",
-		sortFn: "text",
-	},
-	{
-		accessorKey: "submittedAt",
+		accessorKey: "createdAt",
 		header: "Submitted",
 		sortFn: "datetime",
-		cell: ({ row }) => dateFormat.format(new Date(row.original.submittedAt)),
+		cell: ({ row }) => dateFormat.format(new Date(row.original.createdAt)),
+	},
+	{
+		id: "candidates",
+		header: "Candidates",
+		cell: ({ row }) =>
+			row.original.candidates.length > 0
+				? row.original.candidates.map((c) => c.name).join(", ")
+				: "None found",
 	},
 	{
 		accessorKey: "status",
@@ -106,54 +116,25 @@ const columns: ColumnDef<typeof features, PendingRemovalRow>[] = [
 		cell: ({ row }) => row.original.resolvedByName ?? null,
 	},
 	{
-		id: "candidates",
-		header: "Suggested",
-		cell: ({ row }) =>
-			row.original.candidates.length > 0 ? (
-				<div className="flex flex-wrap gap-1">
-					{row.original.candidates.map((candidate) => (
-						<Badge
-							key={candidate.id}
-							variant="outline"
-							title={candidate.matchReason}
-						>
-							{candidate.name}
-						</Badge>
-					))}
-				</div>
-			) : row.original.status === "pending" ? (
-				<span className="text-muted-foreground text-sm">No matches found</span>
-			) : null,
-	},
-	{
 		id: "actions",
 		header: "Actions",
 		cell: ({ row }) =>
 			row.original.status === "pending" ? (
-				<div className="flex items-center justify-end gap-1">
-					<ResolvePendingRemovalDialog
-						pendingRemovalId={row.original.id}
-						firstName={row.original.firstName}
-						surname={row.original.surname}
-						candidates={row.original.candidates}
-					/>
-					<DismissPendingRemovalButton
-						pendingRemovalId={row.original.id}
-						firstName={row.original.firstName}
-						surname={row.original.surname}
-					/>
+				<div className="flex items-center justify-end">
+					<ResolveIntakeReconciliationDialog reconciliation={row.original} />
 				</div>
 			) : null,
 	},
 ];
 
 /**
- * Every removal request the webhook couldn't resolve on its own, oldest
- * decisions still visible alongside the ones still waiting — a resolved or
- * dismissed row is a record of what happened, not something to hide.
+ * Every intake submission `matchPerson` couldn't confidently resolve on its
+ * own, newest first — the counterpart to `PendingRemovalsTable` on the intake
+ * side. A resolved row stays visible, same reasoning as removals: it's a
+ * record of what happened, not something to hide once handled.
  */
-export function PendingRemovalsTable() {
-	const { data } = useSuspenseQuery(pendingRemovalsQueryOptions);
+export function PendingIntakeReconciliationsTable() {
+	const { data } = useSuspenseQuery(pendingIntakeReconciliationsQueryOptions);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
 	const [pagination, setPagination] = useState({
@@ -185,7 +166,7 @@ export function PendingRemovalsTable() {
 				}}
 				placeholder="Filter by name or status…"
 				className="max-w-sm"
-				aria-label="Filter removal requests"
+				aria-label="Filter needs-review submissions"
 			/>
 
 			<div className="overflow-hidden rounded-lg border">
@@ -201,7 +182,7 @@ export function PendingRemovalsTable() {
 										}
 									>
 										{header.isPlaceholder ? null : header.column.id ===
-											"actions" ? (
+												"actions" || header.column.id === "candidates" ? (
 											<table.FlexRender header={header} />
 										) : (
 											<Button
@@ -237,8 +218,8 @@ export function PendingRemovalsTable() {
 									className="h-24 text-center text-muted-foreground"
 								>
 									{data.length === 0
-										? "No removal requests yet."
-										: "No requests match that filter."}
+										? "Nothing needs review right now."
+										: "No submissions match that filter."}
 								</TableCell>
 							</TableRow>
 						)}
@@ -252,7 +233,7 @@ export function PendingRemovalsTable() {
 				pageCount={table.getPageCount()}
 				filteredRows={filteredCount}
 				totalRows={data.length}
-				noun="requests"
+				noun="submissions"
 				onPageChange={(pageIndex) =>
 					setPagination((current) => ({ ...current, pageIndex }))
 				}

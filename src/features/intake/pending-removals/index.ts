@@ -4,7 +4,11 @@ export {
 	pendingRemovalsQueryOptions,
 	resolvePendingRemoval,
 } from "./action.ts";
-export { type PendingRemovalRow, selectPendingRemovals } from "./query.ts";
+export {
+	type PendingRemovalCandidate,
+	type PendingRemovalRow,
+	selectPendingRemovals,
+} from "./query.ts";
 export {
 	type DismissPendingRemovalInput,
 	dismissPendingRemovalSchema,

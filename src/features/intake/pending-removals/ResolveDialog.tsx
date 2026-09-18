@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { UserCheck } from "lucide-react";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
 	Dialog,
@@ -18,21 +19,26 @@ import {
 	resolvePendingRemoval,
 } from "./action.ts";
 import { MemberPicker } from "./MemberPicker.tsx";
+import type { PendingRemovalCandidate } from "./query.ts";
 
 /**
  * Resolving means picking who a removal request actually refers to — the
  * webhook found zero or several members named this, so a human breaks the
  * tie. Confirming soft-deletes the chosen member the same way an exact match
- * would have.
+ * would have. `candidates` are suggestions only — clicking one fills the
+ * picker, it never resolves on its own, since a fuzzy name match is never
+ * grounds to soft-delete someone without a human looking first.
  */
 export function ResolvePendingRemovalDialog({
 	pendingRemovalId,
 	firstName,
 	surname,
+	candidates,
 }: {
 	pendingRemovalId: string;
 	firstName: string;
 	surname: string;
+	candidates: PendingRemovalCandidate[];
 }) {
 	const resolveFn = useServerFn(resolvePendingRemoval);
 	const queryClient = useQueryClient();
@@ -95,6 +101,25 @@ export function ResolvePendingRemovalDialog({
 						inactive and removed from the connect database.
 					</DialogDescription>
 				</DialogHeader>
+
+				{candidates.length > 0 ? (
+					<div className="flex flex-col gap-1.5">
+						<span className="text-sm font-medium">Suggested</span>
+						<div className="flex flex-wrap gap-1.5">
+							{candidates.map((candidate) => (
+								<Badge
+									key={candidate.id}
+									variant={memberId === candidate.id ? "default" : "outline"}
+									className="cursor-pointer"
+									title={candidate.matchReason}
+									onClick={() => setMemberId(candidate.id)}
+								>
+									{candidate.name}
+								</Badge>
+							))}
+						</div>
+					</div>
+				) : null}
 
 				<Field data-invalid={Boolean(error)}>
 					<FieldLabel>Member</FieldLabel>

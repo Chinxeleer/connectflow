@@ -18,6 +18,9 @@ import { Route as AuthedAreasIndexRouteImport } from './routes/_authed/areas/ind
 import { Route as AuthedAreasAreaGroupRouteImport } from './routes/_authed/areas/$areaGroup'
 import { Route as AuthedMembersIndexRouteImport } from './routes/_authed/members/index'
 import { Route as AuthedMembersMemberIdRouteImport } from './routes/_authed/members/$memberId'
+import { Route as AuthedStagingNeedsReviewRouteImport } from './routes/_authed/staging/needs-review'
+import { Route as AuthedStagingRemovalRequestsRouteImport } from './routes/_authed/staging/removal-requests'
+import { Route as AuthedStagingUnassignedRouteImport } from './routes/_authed/staging/unassigned'
 import { Route as AuthedUsersIndexRouteImport } from './routes/_authed/users/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiWebhooksGoogleFormsMemberIntakeRouteImport } from './routes/api/webhooks/google-forms/member-intake'
@@ -67,6 +70,23 @@ const AuthedMembersMemberIdRoute = AuthedMembersMemberIdRouteImport.update({
   path: '/members/$memberId',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedStagingNeedsReviewRoute =
+  AuthedStagingNeedsReviewRouteImport.update({
+    id: '/staging/needs-review',
+    path: '/staging/needs-review',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedStagingRemovalRequestsRoute =
+  AuthedStagingRemovalRequestsRouteImport.update({
+    id: '/staging/removal-requests',
+    path: '/staging/removal-requests',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedStagingUnassignedRoute = AuthedStagingUnassignedRouteImport.update({
+  id: '/staging/unassigned',
+  path: '/staging/unassigned',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedUsersIndexRoute = AuthedUsersIndexRouteImport.update({
   id: '/users/',
   path: '/users/',
@@ -97,6 +117,9 @@ export interface FileRoutesByFullPath {
   '/review-queue': typeof AuthedReviewQueueRoute
   '/areas/$areaGroup': typeof AuthedAreasAreaGroupRoute
   '/members/$memberId': typeof AuthedMembersMemberIdRoute
+  '/staging/needs-review': typeof AuthedStagingNeedsReviewRoute
+  '/staging/removal-requests': typeof AuthedStagingRemovalRequestsRoute
+  '/staging/unassigned': typeof AuthedStagingUnassignedRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/areas/': typeof AuthedAreasIndexRoute
   '/members/': typeof AuthedMembersIndexRoute
@@ -111,6 +134,9 @@ export interface FileRoutesByTo {
   '/review-queue': typeof AuthedReviewQueueRoute
   '/areas/$areaGroup': typeof AuthedAreasAreaGroupRoute
   '/members/$memberId': typeof AuthedMembersMemberIdRoute
+  '/staging/needs-review': typeof AuthedStagingNeedsReviewRoute
+  '/staging/removal-requests': typeof AuthedStagingRemovalRequestsRoute
+  '/staging/unassigned': typeof AuthedStagingUnassignedRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/areas': typeof AuthedAreasIndexRoute
   '/members': typeof AuthedMembersIndexRoute
@@ -127,6 +153,9 @@ export interface FileRoutesById {
   '/_authed/review-queue': typeof AuthedReviewQueueRoute
   '/_authed/areas/$areaGroup': typeof AuthedAreasAreaGroupRoute
   '/_authed/members/$memberId': typeof AuthedMembersMemberIdRoute
+  '/_authed/staging/needs-review': typeof AuthedStagingNeedsReviewRoute
+  '/_authed/staging/removal-requests': typeof AuthedStagingRemovalRequestsRoute
+  '/_authed/staging/unassigned': typeof AuthedStagingUnassignedRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authed/areas/': typeof AuthedAreasIndexRoute
   '/_authed/members/': typeof AuthedMembersIndexRoute
@@ -143,6 +172,9 @@ export interface FileRouteTypes {
     | '/review-queue'
     | '/areas/$areaGroup'
     | '/members/$memberId'
+    | '/staging/needs-review'
+    | '/staging/removal-requests'
+    | '/staging/unassigned'
     | '/api/auth/$'
     | '/areas/'
     | '/members/'
@@ -157,6 +189,9 @@ export interface FileRouteTypes {
     | '/review-queue'
     | '/areas/$areaGroup'
     | '/members/$memberId'
+    | '/staging/needs-review'
+    | '/staging/removal-requests'
+    | '/staging/unassigned'
     | '/api/auth/$'
     | '/areas'
     | '/members'
@@ -172,6 +207,9 @@ export interface FileRouteTypes {
     | '/_authed/review-queue'
     | '/_authed/areas/$areaGroup'
     | '/_authed/members/$memberId'
+    | '/_authed/staging/needs-review'
+    | '/_authed/staging/removal-requests'
+    | '/_authed/staging/unassigned'
     | '/api/auth/$'
     | '/_authed/areas/'
     | '/_authed/members/'
@@ -253,6 +291,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedMembersMemberIdRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/staging/needs-review': {
+      id: '/_authed/staging/needs-review'
+      path: '/staging/needs-review'
+      fullPath: '/staging/needs-review'
+      preLoaderRoute: typeof AuthedStagingNeedsReviewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/staging/removal-requests': {
+      id: '/_authed/staging/removal-requests'
+      path: '/staging/removal-requests'
+      fullPath: '/staging/removal-requests'
+      preLoaderRoute: typeof AuthedStagingRemovalRequestsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/staging/unassigned': {
+      id: '/_authed/staging/unassigned'
+      path: '/staging/unassigned'
+      fullPath: '/staging/unassigned'
+      preLoaderRoute: typeof AuthedStagingUnassignedRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/users/': {
       id: '/_authed/users/'
       path: '/users'
@@ -290,6 +349,9 @@ interface AuthedRouteChildren {
   AuthedReviewQueueRoute: typeof AuthedReviewQueueRoute
   AuthedAreasAreaGroupRoute: typeof AuthedAreasAreaGroupRoute
   AuthedMembersMemberIdRoute: typeof AuthedMembersMemberIdRoute
+  AuthedStagingNeedsReviewRoute: typeof AuthedStagingNeedsReviewRoute
+  AuthedStagingRemovalRequestsRoute: typeof AuthedStagingRemovalRequestsRoute
+  AuthedStagingUnassignedRoute: typeof AuthedStagingUnassignedRoute
   AuthedAreasIndexRoute: typeof AuthedAreasIndexRoute
   AuthedMembersIndexRoute: typeof AuthedMembersIndexRoute
   AuthedUsersIndexRoute: typeof AuthedUsersIndexRoute
@@ -301,6 +363,9 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedReviewQueueRoute: AuthedReviewQueueRoute,
   AuthedAreasAreaGroupRoute: AuthedAreasAreaGroupRoute,
   AuthedMembersMemberIdRoute: AuthedMembersMemberIdRoute,
+  AuthedStagingNeedsReviewRoute: AuthedStagingNeedsReviewRoute,
+  AuthedStagingRemovalRequestsRoute: AuthedStagingRemovalRequestsRoute,
+  AuthedStagingUnassignedRoute: AuthedStagingUnassignedRoute,
   AuthedAreasIndexRoute: AuthedAreasIndexRoute,
   AuthedMembersIndexRoute: AuthedMembersIndexRoute,
   AuthedUsersIndexRoute: AuthedUsersIndexRoute,
@@ -321,12 +386,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
