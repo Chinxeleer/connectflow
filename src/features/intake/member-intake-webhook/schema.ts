@@ -7,6 +7,7 @@ import {
 	type YearOfStudy,
 	yearOfStudy,
 } from "@/db/schema/members.ts";
+import { requiredNameField } from "@/lib/name-field.ts";
 
 /**
  * The Apps Script trigger sends `null` for an unanswered question, not a
@@ -140,16 +141,8 @@ const YEAR_OF_STUDY_ALIASES: Record<string, YearOfStudy> = {
  * one — see `backfill.ts`.
  */
 export const memberIntakeWebhookSchema = z.object({
-	firstName: z
-		.string()
-		.trim()
-		.min(1, "firstName is required.")
-		.max(200, "That name is unreasonably long."),
-	surname: z
-		.string()
-		.trim()
-		.min(1, "surname is required.")
-		.max(200, "That name is unreasonably long."),
+	firstName: requiredNameField("firstName"),
+	surname: requiredNameField("surname"),
 	phone: optionalText,
 	email: optionalText.refine(
 		(value) => value === "" || z.email().safeParse(value).success,

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { requiredNameField } from "@/lib/name-field.ts";
 
 /**
  * The Google Form's "remove a member" response. Both name fields are required
@@ -7,16 +8,8 @@ import { z } from "zod";
  * missing.
  */
 export const memberRemovalWebhookSchema = z.object({
-	firstName: z
-		.string()
-		.trim()
-		.min(1, "firstName is required.")
-		.max(200, "That name is unreasonably long."),
-	surname: z
-		.string()
-		.trim()
-		.min(1, "surname is required.")
-		.max(200, "That name is unreasonably long."),
+	firstName: requiredNameField("firstName"),
+	surname: requiredNameField("surname"),
 	submittedAt: z.iso.datetime({ offset: true }),
 });
 
