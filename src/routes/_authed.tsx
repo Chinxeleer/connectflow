@@ -1,6 +1,15 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	Outlet,
+	redirect,
+	useRouter,
+} from "@tanstack/react-router";
 import type { CSSProperties } from "react";
 import { AppSidebar } from "@/components/layout/app-sidebar.tsx";
+import { SiteHeader } from "@/components/layout/site-header.tsx";
+import { StatusPage } from "@/components/shared/status-page.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar.tsx";
 import { sessionQueryOptions } from "@/lib/auth-server.ts";
 
@@ -28,6 +37,8 @@ export const Route = createFileRoute("/_authed")({
 		return { session };
 	},
 	component: AuthedLayout,
+	notFoundComponent: AuthedNotFound,
+	errorComponent: AuthedError,
 });
 
 function AuthedLayout() {
@@ -47,5 +58,57 @@ function AuthedLayout() {
 				<Outlet />
 			</SidebarInset>
 		</SidebarProvider>
+	);
+}
+
+/**
+ * A stale link or a typo'd URL inside the app — rendered in place of the
+ * `<Outlet />` above, so the sidebar and nav stay put rather than dropping
+ * the reader onto a bare page they'd have to navigate away from scratch.
+ */
+function AuthedNotFound() {
+	return (
+		<>
+			<SiteHeader title="Not Found" />
+			<div className="flex flex-1 items-center justify-center py-16">
+				<StatusPage
+					code="404"
+					title="Page not found"
+					description="That page doesn't exist, or it may have moved."
+					actions={
+						<Button asChild>
+							<Link to="/dashboard">Back to dashboard</Link>
+						</Button>
+					}
+				/>
+			</div>
+		</>
+	);
+}
+
+function AuthedError({ error }: { error: Error }) {
+	const router = useRouter();
+
+	return (
+		<>
+			<SiteHeader title="Something Went Wrong" />
+			<div className="flex flex-1 items-center justify-center py-16">
+				<StatusPage
+					code="Error"
+					title="Something went wrong"
+					description={error.message || "An unexpected error occurred."}
+					actions={
+						<>
+							<Button variant="outline" onClick={() => router.invalidate()}>
+								Try again
+							</Button>
+							<Button asChild>
+								<Link to="/dashboard">Back to dashboard</Link>
+							</Button>
+						</>
+					}
+				/>
+			</div>
+		</>
 	);
 }
