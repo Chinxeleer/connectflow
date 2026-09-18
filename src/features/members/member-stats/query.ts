@@ -1,4 +1,4 @@
-import { count, isNull, sql } from "drizzle-orm";
+import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
 import { type MemberScope, memberScopeWhere } from "../scope.ts";
@@ -26,11 +26,19 @@ export type MemberStats = {
  * Both count members *in scope*; the report itself is intentionally not scoped,
  * since the question is whether this member leads anyone at all, not how many
  * of their people the caller may see.
+ *
+ * Also excludes `isOrganization` rows (e.g. "ENC") from every count — it
+ * isn't a real member, isn't "waiting on a connect leader" despite having no
+ * `leaderId`, and isn't a real connect despite having reports.
  */
 export async function selectMemberStats(
 	scope: MemberScope,
 ): Promise<MemberStats> {
-	const scoped = memberScopeWhere(scope);
+	const scopeWhere = memberScopeWhere(scope);
+	const notOrganization = eq(members.isOrganization, false);
+	const scoped = scopeWhere
+		? and(scopeWhere, notOrganization)
+		: notOrganization;
 
 	// `${members}.id`, not `${members.id}`: drizzle renders a bare column
 	// reference inside a raw template as `"id"`, which the subquery then
@@ -55,7 +63,7 @@ export async function selectMemberStats(
 		})
 		.from(members);
 
-	const [row] = await (scoped ? query.where(scoped) : query);
+	const [row] = await query.where(scoped);
 
 	return (
 		row ?? {
