@@ -233,6 +233,17 @@ describe("matchPerson", () => {
 		expect(result).toEqual({ outcome: "CONFIDENT_CREATE" });
 	});
 
+	it("surname matches exactly, first name completely different -> CONFIDENT_CREATE, not a match", () => {
+		// The mirror of the case above — proves nameIsCloseTo requires both
+		// parts independently, not just one of the two, regardless of which
+		// one happens to match.
+		const result = matchPerson(
+			payload({ email: null, firstName: "Zephyrine", surname: "Lovelace" }),
+			[ada],
+		);
+		expect(result).toEqual({ outcome: "CONFIDENT_CREATE" });
+	});
+
 	it("both first name and surname close (one typo each), no email/phone, only one candidate -> CONFIDENT_UPDATE", () => {
 		const result = matchPerson(
 			{
