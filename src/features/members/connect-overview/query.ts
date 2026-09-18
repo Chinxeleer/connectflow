@@ -1,4 +1,4 @@
-import { count, isNull, sql } from "drizzle-orm";
+import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
 import { type MemberScope, memberScopeWhere } from "../scope.ts";
@@ -19,7 +19,11 @@ export type ConnectOverview = {
  *
  * Scoped exactly like the members page — an admin sees the whole system, a
  * leader sees the people directly under them — so the same number means the
- * same thing on both pages.
+ * same thing on both pages. Also excludes `isOrganization` rows (e.g. "ENC")
+ * the same way the members page does — one wouldn't be a real "active
+ * connect", and its reports being "in a connect" would be misleading, given
+ * it exists only as a nominal leader for people who don't really report to
+ * anyone.
  *
  * Deliberately not the account statistics that used to sit here: how many
  * logins exist says nothing about how the connects are doing. Those moved to
@@ -28,7 +32,11 @@ export type ConnectOverview = {
 export async function selectConnectOverview(
 	scope: MemberScope,
 ): Promise<ConnectOverview> {
-	const scoped = memberScopeWhere(scope);
+	const scopeWhere = memberScopeWhere(scope);
+	const notOrganization = eq(members.isOrganization, false);
+	const scoped = scopeWhere
+		? and(scopeWhere, notOrganization)
+		: notOrganization;
 
 	// `${members}.id`, not `${members.id}`: drizzle renders a bare column
 	// reference inside a raw template as `"id"`, which the subquery then
@@ -58,7 +66,7 @@ export async function selectConnectOverview(
 		})
 		.from(members);
 
-	const [row] = await (scoped ? query.where(scoped) : query);
+	const [row] = await query.where(scoped);
 
 	return (
 		row ?? {

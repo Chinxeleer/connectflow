@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
 	CalendarCheck,
@@ -12,6 +13,7 @@ import {
 	Waypoints,
 } from "lucide-react";
 import type { ComponentProps } from "react";
+import { Badge } from "@/components/ui/badge.tsx";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -33,6 +35,7 @@ import {
 	SidebarMenuSubItem,
 } from "@/components/ui/sidebar.tsx";
 import { AREA_GROUP_LABELS, areaGroup } from "@/db/schema/members.ts";
+import { stagingAttentionQueryOptions } from "@/features/intake/staging-summary/index.ts";
 import { APP_NAME } from "@/lib/app.ts";
 import { isAdmin } from "@/lib/permissions.ts";
 import { NavUser } from "./nav-user.tsx";
@@ -67,6 +70,10 @@ export function AppSidebar({
 	const { pathname } = useLocation();
 	const onAreasPage = pathname.startsWith("/areas");
 	const onStagingPage = pathname.startsWith("/staging");
+	const { data: attention } = useQuery({
+		...stagingAttentionQueryOptions,
+		enabled: isAdmin(user),
+	});
 
 	return (
 		<Sidebar collapsible="offcanvas" {...props}>
@@ -169,7 +176,17 @@ export function AppSidebar({
 											<SidebarMenuButton tooltip="Staging">
 												<ClipboardList />
 												<span>Staging</span>
-												<ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+												<span className="ml-auto flex items-center gap-1">
+													{attention && attention.total > 0 ? (
+														<Badge
+															variant="destructive"
+															className="h-5 min-w-5 justify-center rounded-full px-1 text-[10px] tabular-nums"
+														>
+															{attention.total}
+														</Badge>
+													) : null}
+													<ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+												</span>
 											</SidebarMenuButton>
 										</CollapsibleTrigger>
 										<CollapsibleContent>

@@ -14,6 +14,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog.tsx";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field.tsx";
+import { stagingAttentionQueryOptions } from "@/features/intake/staging-summary/index.ts";
 import {
 	pendingRemovalsQueryOptions,
 	resolvePendingRemoval,
@@ -57,9 +58,14 @@ export function ResolvePendingRemovalDialog({
 		setError(null);
 		try {
 			await resolveFn({ data: { pendingRemovalId, memberId } });
-			await queryClient.invalidateQueries({
-				queryKey: pendingRemovalsQueryOptions.queryKey,
-			});
+			await Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: pendingRemovalsQueryOptions.queryKey,
+				}),
+				queryClient.invalidateQueries({
+					queryKey: stagingAttentionQueryOptions.queryKey,
+				}),
+			]);
 			setOpen(false);
 			setMemberId(null);
 		} catch (caught) {

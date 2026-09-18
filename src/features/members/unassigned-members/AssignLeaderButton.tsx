@@ -9,6 +9,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover.tsx";
+import { stagingAttentionQueryOptions } from "@/features/intake/staging-summary/index.ts";
 import { getMemberDetail } from "@/features/members/member-detail/index.ts";
 import { membersQueryOptions } from "@/features/members/member-list/index.ts";
 import { updateMemberProfile } from "@/features/members/update-member-profile/index.ts";
@@ -72,6 +73,9 @@ export function AssignLeaderButton({
 				}),
 				queryClient.invalidateQueries({
 					queryKey: membersQueryOptions.queryKey,
+				}),
+				queryClient.invalidateQueries({
+					queryKey: stagingAttentionQueryOptions.queryKey,
 				}),
 			]);
 			setOpen(false);

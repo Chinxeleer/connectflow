@@ -13,6 +13,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog.tsx";
 import { memberIntakeSchema } from "@/features/intake/member-intake-webhook/index.ts";
+import { stagingAttentionQueryOptions } from "@/features/intake/staging-summary/index.ts";
 import {
 	discardIntakeReconciliation,
 	pendingIntakeReconciliationsQueryOptions,
@@ -152,9 +153,14 @@ export function ResolveIntakeReconciliationDialog({
 	}
 
 	async function afterResolved() {
-		await queryClient.invalidateQueries({
-			queryKey: pendingIntakeReconciliationsQueryOptions.queryKey,
-		});
+		await Promise.all([
+			queryClient.invalidateQueries({
+				queryKey: pendingIntakeReconciliationsQueryOptions.queryKey,
+			}),
+			queryClient.invalidateQueries({
+				queryKey: stagingAttentionQueryOptions.queryKey,
+			}),
+		]);
 		setOpen(false);
 		reset();
 	}

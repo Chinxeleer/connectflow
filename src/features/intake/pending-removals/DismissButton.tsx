@@ -14,6 +14,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import { stagingAttentionQueryOptions } from "@/features/intake/staging-summary/index.ts";
 import {
 	dismissPendingRemoval,
 	pendingRemovalsQueryOptions,
@@ -43,9 +44,14 @@ export function DismissPendingRemovalButton({
 		setError(null);
 		try {
 			await dismissFn({ data: { pendingRemovalId } });
-			await queryClient.invalidateQueries({
-				queryKey: pendingRemovalsQueryOptions.queryKey,
-			});
+			await Promise.all([
+				queryClient.invalidateQueries({
+					queryKey: pendingRemovalsQueryOptions.queryKey,
+				}),
+				queryClient.invalidateQueries({
+					queryKey: stagingAttentionQueryOptions.queryKey,
+				}),
+			]);
 			setOpen(false);
 		} catch (caught) {
 			setError(
