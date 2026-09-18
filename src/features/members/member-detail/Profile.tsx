@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { AreaGroupBadge } from "@/components/shared/area-group-badge.tsx";
+import { MinistryBadge } from "@/components/shared/ministry-badge.tsx";
 import { MemberStatusBadge } from "@/components/shared/status-badge.tsx";
 import { YearOfStudyBadge } from "@/components/shared/year-of-study-badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -158,6 +159,11 @@ export function MemberProfile({ memberId }: { memberId: string }) {
 						<DetailRow label="Area group">
 							{member.areaGroup ? (
 								<AreaGroupBadge areaGroup={member.areaGroup} />
+							) : undefined}
+						</DetailRow>
+						<DetailRow label="Ministry">
+							{member.ministry ? (
+								<MinistryBadge ministry={member.ministry} />
 							) : undefined}
 						</DetailRow>
 						<DetailRow label="Sign-in account">
