@@ -30,7 +30,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select.tsx";
 import { type MemberStatus, memberStatus } from "@/db/schema/members.ts";
-import { membersQueryOptions } from "@/features/members/member-list/action.ts";
+import {
+	assignablePeopleQueryOptions,
+	membersQueryOptions,
+} from "@/features/members/member-list/action.ts";
 import { memberStatsQueryOptions } from "@/features/members/member-stats/action.ts";
 import { createMember } from "./action.ts";
 import { createMemberInputSchema } from "./schema.ts";
@@ -97,6 +100,9 @@ export function CreateMemberDialog({
 				await Promise.all([
 					queryClient.invalidateQueries({
 						queryKey: membersQueryOptions.queryKey,
+					}),
+					queryClient.invalidateQueries({
+						queryKey: assignablePeopleQueryOptions.queryKey,
 					}),
 					queryClient.invalidateQueries({
 						queryKey: memberStatsQueryOptions.queryKey,

@@ -14,7 +14,10 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { membersQueryOptions } from "@/features/members/member-list/action.ts";
+import {
+	assignablePeopleQueryOptions,
+	membersQueryOptions,
+} from "@/features/members/member-list/action.ts";
 import { memberStatsQueryOptions } from "@/features/members/member-stats/action.ts";
 import { deleteMember } from "./action.ts";
 
@@ -44,6 +47,9 @@ export function ConfirmDeleteMember({
 			await Promise.all([
 				queryClient.invalidateQueries({
 					queryKey: membersQueryOptions.queryKey,
+				}),
+				queryClient.invalidateQueries({
+					queryKey: assignablePeopleQueryOptions.queryKey,
 				}),
 				queryClient.invalidateQueries({
 					queryKey: memberStatsQueryOptions.queryKey,

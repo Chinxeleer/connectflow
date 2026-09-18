@@ -9,7 +9,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog.tsx";
-import { membersQueryOptions } from "@/features/members/member-list/action.ts";
+import {
+	assignablePeopleQueryOptions,
+	membersQueryOptions,
+} from "@/features/members/member-list/action.ts";
 import { memberStatsQueryOptions } from "@/features/members/member-stats/action.ts";
 import { cn } from "@/lib/utils.ts";
 import { type ImportResult, importMembersCsv } from "./action.ts";
@@ -188,6 +191,9 @@ export function ImportCsvForm({ onImported }: { onImported: () => void }) {
 			await Promise.all([
 				queryClient.invalidateQueries({
 					queryKey: membersQueryOptions.queryKey,
+				}),
+				queryClient.invalidateQueries({
+					queryKey: assignablePeopleQueryOptions.queryKey,
 				}),
 				queryClient.invalidateQueries({
 					queryKey: memberStatsQueryOptions.queryKey,

@@ -15,7 +15,7 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@/components/ui/popover.tsx";
-import { membersQueryOptions } from "@/features/members/member-list/action.ts";
+import { assignablePeopleQueryOptions } from "@/features/members/member-list/action.ts";
 import { cn } from "@/lib/utils.ts";
 
 const UNASSIGNED = "__unassigned__";
@@ -25,8 +25,9 @@ const UNASSIGNED = "__unassigned__";
  * profile editor. Only admins see it — a leader's new member always goes onto
  * their own connect, and reassignment is admin-only, both decided server-side.
  *
- * Options come from the members list, which is already scoped and cached, so
- * this needs no endpoint of its own.
+ * Deliberately reads from `assignablePeopleQueryOptions`, not the member
+ * roster — an `isOrganization` entity like "ENC" is excluded from the roster
+ * but must still be pickable as a leader.
  */
 export function LeaderPicker({
 	value,
@@ -43,7 +44,7 @@ export function LeaderPicker({
 	 */
 	excludeId?: string;
 }) {
-	const { data, isPending } = useQuery(membersQueryOptions);
+	const { data, isPending } = useQuery(assignablePeopleQueryOptions);
 	const [open, setOpen] = useState(false);
 
 	const options = (data ?? []).filter((member) => member.id !== excludeId);

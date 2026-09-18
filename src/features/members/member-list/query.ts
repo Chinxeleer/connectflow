@@ -29,17 +29,23 @@ const profileIncomplete = sql<boolean>`(
  * table and filter in the component, or a leader's response body carries every
  * other leader's people.
  *
+ * Always excludes `isOrganization` rows (e.g. "ENC", the nominal leader for a
+ * leader/elder/pastor who doesn't report to anyone) — the roster is real
+ * people, not the ministry acting as its own placeholder leader. A caller
+ * that genuinely needs to see those too (picking who to assign as a leader)
+ * wants `selectAssignablePeople`, not this.
+ *
  * `extraWhere` ANDs in a further predicate on top of the scope — used by the
  * per-area page to reuse this query and its `hasReports`/`profileIncomplete`
  * subqueries rather than a second, easily-drifting copy of them.
  */
 export function selectMembers(scope: MemberScope, extraWhere?: SQL) {
 	const scopeWhere = memberScopeWhere(scope);
-	const where = extraWhere
-		? scopeWhere
-			? and(scopeWhere, extraWhere)
-			: extraWhere
-		: scopeWhere;
+	const notOrganization = eq(members.isOrganization, false);
+	const combinedScope = scopeWhere
+		? and(scopeWhere, notOrganization)
+		: notOrganization;
+	const where = extraWhere ? and(combinedScope, extraWhere) : combinedScope;
 
 	const query = db
 		.select({
@@ -60,3 +66,23 @@ export function selectMembers(scope: MemberScope, extraWhere?: SQL) {
 }
 
 export type MemberListRow = Awaited<ReturnType<typeof selectMembers>>[number];
+
+/**
+ * Everyone who could be picked as a leader, or as who a webhook request
+ * refers to — unlike `selectMembers`, this deliberately includes
+ * `isOrganization` rows, since an entity like "ENC" is a valid leader target
+ * even though it's excluded from the roster itself.
+ */
+export function selectAssignablePeople(scope: MemberScope) {
+	const scopeWhere = memberScopeWhere(scope);
+	const query = db
+		.select({ id: members.id, name: members.name })
+		.from(members)
+		.orderBy(asc(members.name));
+
+	return scopeWhere ? query.where(scopeWhere) : query;
+}
+
+export type AssignablePerson = Awaited<
+	ReturnType<typeof selectAssignablePeople>
+>[number];

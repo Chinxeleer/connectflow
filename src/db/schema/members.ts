@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
 	type AnyPgColumn,
+	boolean,
 	index,
 	pgEnum,
 	pgTable,
@@ -82,6 +83,16 @@ export const members = pgTable(
 		name: text("name").notNull(),
 		phone: text("phone"),
 		email: text("email"),
+
+		/**
+		 * A member row that stands in for the ministry itself, not a person —
+		 * e.g. a top-of-tree entity assigned as the nominal leader for a
+		 * leader/elder/pastor who doesn't report to anyone. Still a normal
+		 * `leaderId` target (self-referencing, so it must be a member row like
+		 * any other), but excluded from the member roster and anywhere else
+		 * "how many members" is being counted, since it isn't one.
+		 */
+		isOrganization: boolean("is_organization").default(false).notNull(),
 
 		/**
 		 * Profile fields backfilled later by the member themselves. Null is the
