@@ -10,10 +10,11 @@ import { upsertMemberFromIntake } from "./query.ts";
 import type { MemberIntakeValues } from "./schema.ts";
 
 /**
- * Proves the three-way outcome against a real database — the key behavior
- * change this replaced the old matcher for: a name match alone, however
- * close, must never silently update someone, and an ambiguous submission
- * must stage a reconciliation rather than guessing.
+ * Proves the three-way outcome against a real database: create when nothing
+ * resembles the submission, confidently update the one person a submission
+ * resembles (whether corroborated by email or on name alone), and stage a
+ * reconciliation rather than guessing when a name resembles more than one
+ * person on file.
  */
 const TAG = `__intaketest_${Date.now()}`;
 const named = (label: string) => `${TAG} ${label}`;
@@ -124,22 +125,61 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			expect(after?.residence).toBe("Hall 3");
 		});
 
-		it("stages a reconciliation for a name-only match and touches no member record", async () => {
+		it("auto-applies a name-only match to the one person it resembles", async () => {
+			// Deliberately not derived from the shared TAG — two names built from
+			// the same long prefix are, by construction, similar to *each other*
+			// under a length-relative threshold, which would wrongly draw this
+			// test's fixture into the next test's ambiguous-match scenario.
+			const name = "Zqxvantauto Wumbleford";
+			// A retried attempt would otherwise re-insert alongside a prior
+			// attempt's still-present row, turning a one-candidate match into an
+			// ambiguous one and failing for an unrelated reason.
+			await db.delete(members).where(eq(members.name, name));
+
 			const [existing] = await db
 				.insert(members)
-				.values({
-					name: `${named("Precious")} Ndlovu`,
-					email: null,
-					phone: null,
-					residence: "Hall 1",
-				})
+				.values({ name, email: null, phone: null, residence: null })
 				.returning({ id: members.id });
 			if (!existing) throw new Error("setup failed");
 			createdMemberIds.push(existing.id);
 
 			const values = baseValues({
-				firstName: named("Precious"),
-				surname: "Ndlovu",
+				firstName: "Zqxvantauto",
+				surname: "Wumbleford",
+				residence: "Hall 9",
+			});
+
+			const result = await upsertMemberFromIntake(values, {
+				source: "test",
+			});
+			expect(result.outcome).toBe("updated");
+			if (result.outcome !== "updated") throw new Error("unreachable");
+			expect(result.memberId).toBe(existing.id);
+
+			const [after] = await db
+				.select({ residence: members.residence })
+				.from(members)
+				.where(eq(members.id, existing.id));
+			expect(after?.residence).toBe("Hall 9");
+		});
+
+		it("stages a reconciliation when a name-only match resembles two different people, and touches no member record", async () => {
+			const name = "Krillmulti Panthergax";
+			await db.delete(members).where(eq(members.name, name));
+
+			const [first, second] = await db
+				.insert(members)
+				.values([
+					{ name, email: null, phone: null, residence: "Hall 1" },
+					{ name, email: null, phone: null, residence: "Hall 2" },
+				])
+				.returning({ id: members.id });
+			if (!first || !second) throw new Error("setup failed");
+			createdMemberIds.push(first.id, second.id);
+
+			const values = baseValues({
+				firstName: "Krillmulti",
+				surname: "Panthergax",
 				residence: "Hall 9",
 			});
 
@@ -148,10 +188,10 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			});
 			expect(result.outcome).toBe("needs_review");
 			if (result.outcome !== "needs_review") throw new Error("unreachable");
-			expect(result.candidateCount).toBe(1);
+			expect(result.candidateCount).toBe(2);
 			createdReconciliationIds.push(result.reconciliationId);
 
-			const [candidate] = await db
+			const candidateRows = await db
 				.select({ personId: intakeReconciliationCandidates.personId })
 				.from(intakeReconciliationCandidates)
 				.where(
@@ -160,13 +200,18 @@ describe.skipIf(!process.env.DATABASE_URL)(
 						result.reconciliationId,
 					),
 				);
-			expect(candidate?.personId).toBe(existing.id);
+			expect(candidateRows.map((row) => row.personId).sort()).toEqual(
+				[first.id, second.id].sort(),
+			);
 
-			const [after] = await db
-				.select({ residence: members.residence })
+			const untouched = await db
+				.select({ id: members.id, residence: members.residence })
 				.from(members)
-				.where(eq(members.id, existing.id));
-			expect(after?.residence).toBe("Hall 1");
+				.where(inArray(members.id, [first.id, second.id]));
+			expect(untouched.map((row) => row.residence).sort()).toEqual([
+				"Hall 1",
+				"Hall 2",
+			]);
 		});
 	},
 );

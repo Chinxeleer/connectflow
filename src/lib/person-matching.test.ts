@@ -3,6 +3,7 @@ import {
 	type MatchCandidatePerson,
 	matchPerson,
 	matchPersonForRemoval,
+	NAME_AUTO_APPLY_THRESHOLD,
 	NAME_SIMILARITY_THRESHOLD,
 	type NameOnlyCandidate,
 	namesAreClose,
@@ -232,7 +233,7 @@ describe("matchPerson", () => {
 		expect(result).toEqual({ outcome: "CONFIDENT_CREATE" });
 	});
 
-	it("both first name and surname close (one typo each), no email/phone -> NEEDS_REVIEW with that one candidate", () => {
+	it("both first name and surname close (one typo each), no email/phone, only one candidate -> CONFIDENT_UPDATE", () => {
 		const result = matchPerson(
 			{
 				firstName: "Precius", // dropped the "o"
@@ -242,16 +243,10 @@ describe("matchPerson", () => {
 			},
 			[precious, grace],
 		);
-		expect(result.outcome).toBe("NEEDS_REVIEW");
-		if (result.outcome === "NEEDS_REVIEW") {
-			expect(result.candidates).toEqual([
-				{
-					personId: "precious-1",
-					matchReason:
-						"name is a close match, with no corroborating email or phone",
-				},
-			]);
-		}
+		expect(result).toEqual({
+			outcome: "CONFIDENT_UPDATE",
+			personId: "precious-1",
+		});
 	});
 
 	it("the same fuzzy scenario matching two different people -> NEEDS_REVIEW listing both", () => {
@@ -327,10 +322,73 @@ describe("matchPerson", () => {
 		}
 	});
 
-	it("a name match alone, however close, never produces CONFIDENT_UPDATE", () => {
+	it("a name match alone, above the auto-apply threshold, with only one candidate -> CONFIDENT_UPDATE", () => {
 		// Exact name match, but no email or phone at all.
 		const result = matchPerson(payload({ email: null, phone: null }), [ada]);
-		expect(result.outcome).not.toBe("CONFIDENT_UPDATE");
+		expect(result).toEqual({ outcome: "CONFIDENT_UPDATE", personId: "ada-1" });
+	});
+
+	it("a name match alone, below the auto-apply threshold -> CONFIDENT_CREATE, not a match", () => {
+		const result = matchPerson(
+			payload({
+				email: null,
+				phone: null,
+				firstName: "Ada",
+				surname: "Zzzzzzzz",
+			}),
+			[ada],
+		);
+		expect(result).toEqual({ outcome: "CONFIDENT_CREATE" });
+	});
+
+	it("a name match alone, above the auto-apply threshold but matching two people -> NEEDS_REVIEW", () => {
+		const result = matchPerson(payload({ email: null, phone: null }), [
+			ada,
+			{ ...ada, id: "ada-2" },
+		]);
+		expect(result.outcome).toBe("NEEDS_REVIEW");
+		if (result.outcome === "NEEDS_REVIEW") {
+			expect(result.candidates.map((c) => c.personId).sort()).toEqual([
+				"ada-1",
+				"ada-2",
+			]);
+		}
+	});
+
+	it("sits right at the documented auto-apply threshold", () => {
+		expect(NAME_AUTO_APPLY_THRESHOLD).toBe(0.7);
+	});
+
+	it("a single candidate just at the auto-apply threshold, below the review-flag threshold -> CONFIDENT_UPDATE", () => {
+		// Same-length strings differing only by substitution, so similarity is
+		// exact: 15 substitutions on 50 chars -> 1 - 15/50 = 0.70, exactly at
+		// NAME_AUTO_APPLY_THRESHOLD and comfortably below NAME_SIMILARITY_THRESHOLD
+		// (0.82) — proving this tier is reachable at a similarity that used to
+		// fall through to CONFIDENT_CREATE entirely.
+		const base = "a".repeat(50);
+		const chars = base.split("");
+		for (let i = 0; i < 15; i++) chars[i] = "z";
+		const atThreshold = chars.join("");
+
+		const candidate: MatchCandidatePerson = {
+			id: "candidate-1",
+			name: `${base} ${base}`,
+			email: null,
+			phone: null,
+		};
+		const result = matchPerson(
+			{
+				firstName: atThreshold,
+				surname: atThreshold,
+				email: null,
+				phone: null,
+			},
+			[candidate],
+		);
+		expect(result).toEqual({
+			outcome: "CONFIDENT_UPDATE",
+			personId: "candidate-1",
+		});
 	});
 
 	it("case/whitespace-only name differences count as a match, not a typo", () => {
@@ -353,17 +411,20 @@ describe("matchPerson", () => {
 			});
 		});
 
-		it("a one-letter typo'd name with no email, which the old logic silently created as a duplicate, now surfaces for review instead", () => {
+		it("a one-letter typo'd name with no email, which the old logic silently created as a duplicate, now matches the existing person instead", () => {
 			// The old findFullNameMatches did an exact (post-normalize) string
 			// comparison with no fuzzy tolerance at all — zero matches meant a new
 			// member was created immediately, with no human ever seeing that a
-			// near-identical name already existed.
+			// near-identical name already existed. A single fuzzy match above the
+			// auto-apply threshold now resolves to that person directly.
 			const result = matchPerson(
 				{ firstName: "Precius", surname: "Ndlovu", email: null, phone: null },
 				[precious],
 			);
-			expect(result.outcome).toBe("NEEDS_REVIEW");
-			expect(result.outcome).not.toBe("CONFIDENT_CREATE");
+			expect(result).toEqual({
+				outcome: "CONFIDENT_UPDATE",
+				personId: "precious-1",
+			});
 		});
 	});
 });

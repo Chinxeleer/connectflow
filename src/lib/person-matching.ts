@@ -49,9 +49,23 @@ export function splitStoredName(name: string): {
  * one's length) to count as "probably the same, probably a typo" rather
  * than "probably different people". One tunable constant, not scattered
  * magic numbers — raise it to demand closer matches, lower it to tolerate
- * more typos.
+ * more typos. This is the default `namesAreClose` threshold, and the only
+ * one `matchPersonForRemoval` ever uses.
  */
 export const NAME_SIMILARITY_THRESHOLD = 0.82;
+
+/**
+ * The bar `matchPerson`'s name-only tier (no email, no phone) uses to decide
+ * a submission confidently updates the one person it resembles, instead of
+ * going to a human. Deliberately lower than `NAME_SIMILARITY_THRESHOLD` —
+ * that constant governs "close enough to flag as a candidate at all" (still
+ * used, at this same lower bar, by every tier inside `matchPerson`); this one
+ * governs "close enough to act on unsupervised" when name is *all* there is.
+ * Only ever applies when exactly one existing person clears it — two or more
+ * candidates above this threshold is exactly the ambiguity a human needs to
+ * resolve, so that still routes to `NEEDS_REVIEW`.
+ */
+export const NAME_AUTO_APPLY_THRESHOLD = 0.7;
 
 /**
  * Reads/writes one cell of the DP grid below. `i`/`j` are always within
@@ -96,8 +110,16 @@ function levenshteinDistance(a: string, b: string): number {
  * the same string. Below that, similarity is edit distance normalized by
  * the longer name's length, so the tolerance scales with name length rather
  * than being a fixed number of characters.
+ *
+ * `threshold` defaults to `NAME_SIMILARITY_THRESHOLD` — pass
+ * `NAME_AUTO_APPLY_THRESHOLD` (or any other bar) explicitly where a caller
+ * needs a different tolerance.
  */
-export function namesAreClose(a: string, b: string): boolean {
+export function namesAreClose(
+	a: string,
+	b: string,
+	threshold: number = NAME_SIMILARITY_THRESHOLD,
+): boolean {
 	const normalizedA = normalizeName(a);
 	const normalizedB = normalizeName(b);
 
@@ -106,7 +128,7 @@ export function namesAreClose(a: string, b: string): boolean {
 
 	const longer = Math.max(normalizedA.length, normalizedB.length);
 	const similarity = 1 - levenshteinDistance(normalizedA, normalizedB) / longer;
-	return similarity >= NAME_SIMILARITY_THRESHOLD;
+	return similarity >= threshold;
 }
 
 export type MatchCandidatePerson = {
@@ -142,9 +164,9 @@ function normalizedPhone(value: string | null): string | null {
 
 /**
  * Whether a candidate's stored name is close to the submitted name — both
- * parts, independently. A close first name with a wildly different surname
- * (or vice versa) is not a name match at all; two people can easily share
- * one without being the same person.
+ * parts, independently, at `NAME_AUTO_APPLY_THRESHOLD`. A close first name
+ * with a wildly different surname (or vice versa) is not a name match at
+ * all; two people can easily share one without being the same person.
  */
 function nameIsCloseTo(
 	candidate: MatchCandidatePerson,
@@ -152,19 +174,23 @@ function nameIsCloseTo(
 ): boolean {
 	const stored = splitStoredName(candidate.name);
 	return (
-		namesAreClose(stored.firstName, payload.firstName) &&
-		namesAreClose(stored.surname, payload.surname)
+		namesAreClose(
+			stored.firstName,
+			payload.firstName,
+			NAME_AUTO_APPLY_THRESHOLD,
+		) &&
+		namesAreClose(stored.surname, payload.surname, NAME_AUTO_APPLY_THRESHOLD)
 	);
 }
 
 /**
  * Classifies one intake submission against everyone already on file.
  *
- * A name match — however close, even an exact one — never produces
- * CONFIDENT_UPDATE on its own. Names repeat across unrelated people in a
- * group this size; only email or phone are precise enough identifiers to
- * auto-decide on, and even then only when the name doesn't actively
- * contradict them.
+ * Email or phone matching a single person, with a name that doesn't
+ * contradict it, is always confident. With no email or phone at all, a name
+ * match still auto-applies — but only when it resembles exactly one existing
+ * person; resembling two or more is exactly the ambiguity that needs a human,
+ * so that still routes to `NEEDS_REVIEW`.
  */
 export function matchPerson(
 	payload: IntakeMatchPayload,
@@ -263,6 +289,11 @@ export function matchPerson(
 
 	if (nameMatches.length === 0) {
 		return { outcome: "CONFIDENT_CREATE" };
+	}
+
+	if (nameMatches.length === 1) {
+		// biome-ignore lint/style/noNonNullAssertion: length === 1 by the check above
+		return { outcome: "CONFIDENT_UPDATE", personId: nameMatches[0]!.id };
 	}
 
 	return {
