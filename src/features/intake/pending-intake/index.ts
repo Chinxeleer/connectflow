@@ -13,8 +13,11 @@ export {
 	type PersonFields,
 } from "./field-comparison.ts";
 export {
+	discardReconciliation,
 	type IntakeReconciliationCandidateRow,
 	type PendingIntakeReconciliation,
+	resolveReconciliationAsNew,
+	resolveReconciliationAsUpdate,
 	selectPendingIntakeReconciliations,
 } from "./query.ts";
 export {
