@@ -123,10 +123,12 @@ const AREA_GROUP_ALIASES: Record<string, AreaGroup> = {
 };
 
 /**
- * The year of study question's live options are bare digits ("3"), not the
- * "Year 3" text `YEAR_OF_STUDY_LABELS` has — confirmed directly against a
- * real submission. Only "Postgrad" happens to already match its label
- * verbatim.
+ * The year of study question's live options, confirmed directly against the
+ * form. It's been reworded at least twice: bare digits ("3") originally, then
+ * ordinals ("3rd") — both kept here since a submission already in flight
+ * when the form changes still needs to resolve. "PostGrad", "Alumni" and
+ * "Ministry" already match their labels case-insensitively, so they need no
+ * entry here at all.
  */
 const YEAR_OF_STUDY_ALIASES: Record<string, YearOfStudy> = {
 	"1": "year_1",
@@ -135,6 +137,12 @@ const YEAR_OF_STUDY_ALIASES: Record<string, YearOfStudy> = {
 	"4": "year_4",
 	"5": "year_5",
 	"6": "year_6",
+	"1st": "year_1",
+	"2nd": "year_2",
+	"3rd": "year_3",
+	"4th": "year_4",
+	"5th": "year_5",
+	"6th": "year_6",
 };
 
 /**

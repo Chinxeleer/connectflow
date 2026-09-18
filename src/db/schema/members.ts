@@ -61,11 +61,25 @@ export const yearOfStudy = pgEnum("year_of_study", [
 	"year_5",
 	"year_6",
 	"postgrad",
+	"alumni",
+	"in_ministry",
 ]);
 
 export type YearOfStudy = (typeof yearOfStudy.enumValues)[number];
 
-/** Display label for each year of study, keyed by its stored enum value. */
+/**
+ * Display label for each year of study, keyed by its stored enum value.
+ * Kept as the app's own canonical wording rather than copying the live
+ * form's exact option text (e.g. "1st" vs "Year 1") — same approach as
+ * `AREA_GROUP_LABELS`; the intake webhook's aliases bridge whatever text the
+ * form happens to use to these values, the label is just how it reads here.
+ *
+ * `in_ministry` reads oddly next to a field called "year of study", but it's
+ * the live form's own option under that same question, not ours to invent —
+ * named distinctly from the separate `ministry` enum/column below (a
+ * different question entirely: which ministry someone serves in) so the two
+ * are never mistaken for each other when reading code.
+ */
 export const YEAR_OF_STUDY_LABELS: Record<YearOfStudy, string> = {
 	year_1: "Year 1",
 	year_2: "Year 2",
@@ -74,6 +88,8 @@ export const YEAR_OF_STUDY_LABELS: Record<YearOfStudy, string> = {
 	year_5: "Year 5",
 	year_6: "Year 6",
 	postgrad: "Postgrad",
+	alumni: "Alumni",
+	in_ministry: "Ministry",
 };
 
 /**

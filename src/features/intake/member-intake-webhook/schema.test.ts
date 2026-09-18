@@ -194,7 +194,9 @@ describe("memberIntakeWebhookSchema", () => {
 		).toBe(true);
 	});
 
-	// The live form's actual options for years 1-6 are bare digits, not "Year N".
+	// The live form's options for years 1-6 started as bare digits, then
+	// changed to ordinals — both still need to resolve, since a submission
+	// already in flight when the form changes still uses the old wording.
 	it.each([
 		["1", "year_1"],
 		["2", "year_2"],
@@ -202,6 +204,29 @@ describe("memberIntakeWebhookSchema", () => {
 		["4", "year_4"],
 		["5", "year_5"],
 		["6", "year_6"],
+		["1st", "year_1"],
+		["2nd", "year_2"],
+		["3rd", "year_3"],
+		["4th", "year_4"],
+		["5th", "year_5"],
+		["6th", "year_6"],
+	] as const)('resolves the live form\'s "%s" option to %s', (raw, expected) => {
+		const result = memberIntakeWebhookSchema.safeParse({
+			...valid,
+			yearOfStudy: raw,
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.yearOfStudy).toBe(expected);
+	});
+
+	// The live form added two options beyond an actual year of study —
+	// confirmed directly against it. Both match their label
+	// case-insensitively, so they need no alias entry, just to exist in the
+	// enum at all.
+	it.each([
+		["PostGrad", "postgrad"],
+		["Alumni", "alumni"],
+		["Ministry", "in_ministry"],
 	] as const)('resolves the live form\'s "%s" option to %s', (raw, expected) => {
 		const result = memberIntakeWebhookSchema.safeParse({
 			...valid,

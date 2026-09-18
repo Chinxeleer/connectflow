@@ -71,6 +71,13 @@
       "when": 1789739710186,
       "tag": "0009_gray_piledriver",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789752627994,
+      "tag": "0010_long_sabretooth",
+      "breakpoints": true
     }
   ]
 }
