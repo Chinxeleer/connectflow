@@ -1,4 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
 	type ColumnDef,
 	columnFilteringFeature,
@@ -58,7 +59,15 @@ const columns: ColumnDef<typeof features, ConnectLeaderRow>[] = [
 		accessorKey: "name",
 		header: "Connect leader",
 		sortFn: "text",
-		cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+		cell: ({ row }) => (
+			<Link
+				to="/members/$memberId"
+				params={{ memberId: row.original.id }}
+				className="font-medium underline-offset-4 hover:underline"
+			>
+				{row.original.name}
+			</Link>
+		),
 	},
 	{
 		accessorKey: "status",
