@@ -10,6 +10,7 @@ export type ExistingMemberFields = {
 	areaGroup: AreaGroup | null;
 	yearOfStudy: YearOfStudy | null;
 	ministry: Ministry | null;
+	leaderId: string | null;
 };
 
 export type IntakeBackfillPatch = Partial<{
@@ -21,6 +22,7 @@ export type IntakeBackfillPatch = Partial<{
 	areaGroup: AreaGroup;
 	yearOfStudy: YearOfStudy;
 	ministry: Ministry;
+	leaderId: string;
 }>;
 
 /**
@@ -35,10 +37,18 @@ export type IntakeBackfillPatch = Partial<{
  * or a fuzzy name match resolved by an admin) gets their first real email
  * recorded, becoming eligible for the faster, more precise email match on
  * their next submission — see `matchPerson` in `@/lib/person-matching.ts`.
+ *
+ * `resolvedLeaderId` is not part of `incoming` — unlike every other field, it
+ * isn't parsed straight from the payload, it comes from matching the
+ * submitted "connect leader" text against everyone on file (see
+ * `matchLeaderByName`), including the self-reference and cycle checks only
+ * the caller can do with a database in hand. This function only ever asks
+ * "is the existing row missing one", never "is this one safe to assign".
  */
 export function buildIntakeBackfillPatch(
 	existing: ExistingMemberFields,
 	incoming: MemberIntakeValues,
+	resolvedLeaderId: string | null,
 ): IntakeBackfillPatch {
 	const patch: IntakeBackfillPatch = {};
 
@@ -67,6 +77,9 @@ export function buildIntakeBackfillPatch(
 	// question is whether the existing row already has one.
 	if (existing.areaGroup === null) {
 		patch.areaGroup = incoming.areaGroup;
+	}
+	if (existing.leaderId === null && resolvedLeaderId !== null) {
+		patch.leaderId = resolvedLeaderId;
 	}
 
 	return patch;

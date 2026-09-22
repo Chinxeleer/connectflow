@@ -40,6 +40,7 @@ function baseValues(
 		yearOfStudy: null,
 		ministry: null,
 		areaGroup: "main_central",
+		connectLeaderName: null,
 		submittedAt: new Date(),
 		...overrides,
 	};
@@ -58,6 +59,7 @@ function webhookPayloadFrom(values: MemberIntakeValues) {
 		yearOfStudy: values.yearOfStudy ?? "",
 		ministry: values.ministry ?? "",
 		areaGroup: values.areaGroup,
+		connectLeader: values.connectLeaderName ?? "",
 		submittedAt: values.submittedAt.toISOString(),
 	};
 }
@@ -305,6 +307,87 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			expect(afterReconciliation?.status).toBe("resolved");
 			expect(afterReconciliation?.resolution).toBe("created_new");
 			expect(afterReconciliation?.resolvedMemberId).toBe(memberId);
+		});
+
+		it("assigns a resolvable connect leader when resolving as a new person", async () => {
+			const [leader] = await db
+				.insert(members)
+				.values({ name: `${named("Leadwell")} Ironframe` })
+				.returning({ id: members.id });
+			if (!leader) throw new Error("setup failed");
+			createdMemberIds.push(leader.id);
+
+			// matchPerson only routes a name-only match to needs_review when it's
+			// ambiguous (two or more plausible people) — a single match auto-applies
+			// as CONFIDENT_UPDATE instead. Two identically-named fixtures force the
+			// ambiguity deterministically, since this test is about what
+			// resolveReconciliationAsNew does with the connect leader field, not
+			// about matchPerson's own tiering (already covered elsewhere).
+			const [existingA] = await db
+				.insert(members)
+				.values({ name: `${named("Hedy")} Lamarr` })
+				.returning({ id: members.id });
+			const [existingB] = await db
+				.insert(members)
+				.values({ name: `${named("Hedy")} Lamarr` })
+				.returning({ id: members.id });
+			if (!existingA || !existingB) throw new Error("setup failed");
+			createdMemberIds.push(existingA.id, existingB.id);
+
+			const reconciliationId = await stageReconciliation(
+				baseValues({
+					firstName: named("Hedy"),
+					surname: "Lamarr",
+					fieldOfStudy: "Engineering",
+					connectLeaderName: `${named("Leadwell")} Ironframe`,
+				}),
+			);
+
+			const { memberId } = await resolveReconciliationAsNew({
+				reconciliationId,
+				actorId,
+			});
+			createdMemberIds.push(memberId);
+
+			const [created] = await db
+				.select({ leaderId: members.leaderId })
+				.from(members)
+				.where(eq(members.id, memberId));
+			expect(created?.leaderId).toBe(leader.id);
+		});
+
+		it("leaves the new person without a leader when the connect leader name doesn't resolve", async () => {
+			const [existingA] = await db
+				.insert(members)
+				.values({ name: `${named("Rosalind")} Franklin` })
+				.returning({ id: members.id });
+			const [existingB] = await db
+				.insert(members)
+				.values({ name: `${named("Rosalind")} Franklin` })
+				.returning({ id: members.id });
+			if (!existingA || !existingB) throw new Error("setup failed");
+			createdMemberIds.push(existingA.id, existingB.id);
+
+			const reconciliationId = await stageReconciliation(
+				baseValues({
+					firstName: named("Rosalind"),
+					surname: "Franklin",
+					fieldOfStudy: "Chemistry",
+					connectLeaderName: `${named("Nobody")} Registered`,
+				}),
+			);
+
+			const { memberId } = await resolveReconciliationAsNew({
+				reconciliationId,
+				actorId,
+			});
+			createdMemberIds.push(memberId);
+
+			const [created] = await db
+				.select({ leaderId: members.leaderId })
+				.from(members)
+				.where(eq(members.id, memberId));
+			expect(created?.leaderId).toBeNull();
 		});
 
 		it("discards a reconciliation without touching any member record", async () => {

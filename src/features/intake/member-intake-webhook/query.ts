@@ -7,8 +7,10 @@ import {
 } from "@/db/schema/intake-reconciliations.ts";
 import { members } from "@/db/schema/members.ts";
 import { insertMember } from "@/features/members/create-member/index.ts";
+import { wouldLoopTheTree } from "@/features/members/scope.ts";
 import {
 	type MatchCandidatePerson,
+	matchLeaderByName,
 	matchPerson,
 } from "@/lib/person-matching.ts";
 import {
@@ -37,6 +39,7 @@ const existingMemberColumns = {
 	areaGroup: members.areaGroup,
 	yearOfStudy: members.yearOfStudy,
 	ministry: members.ministry,
+	leaderId: members.leaderId,
 } as const;
 
 type ExistingMemberRow = { id: string; name: string } & ExistingMemberFields;
@@ -82,10 +85,19 @@ export async function upsertMemberFromIntake(
 		candidates,
 	);
 
+	// Who the submitter said their connect leader is, resolved against
+	// everyone on file — `null` when blank, unmatched, or ambiguous, in
+	// which case the member is created/left without a leader, same as
+	// before this existed. Never a failure: a leader that can't be
+	// confidently resolved never blocks the submission itself.
+	const resolvedLeaderId = values.connectLeaderName
+		? matchLeaderByName(values.connectLeaderName, candidates)
+		: null;
+
 	if (match.outcome === "CONFIDENT_CREATE") {
 		const created = await insertMember({
 			name: `${values.firstName} ${values.surname}`,
-			leaderId: null,
+			leaderId: resolvedLeaderId,
 			phone: values.phone,
 			email: values.email,
 			gender: values.gender,
@@ -109,9 +121,20 @@ export async function upsertMemberFromIntake(
 			throw new Error("Matched member no longer exists.");
 		}
 
+		// A matched, already-existing member can have their own reports, so
+		// the resolved leader needs the same self-reference and cycle guard
+		// a manual reassignment gets — a brand-new member (above) never does.
+		const safeLeaderId =
+			resolvedLeaderId !== null &&
+			resolvedLeaderId !== existing.id &&
+			!(await wouldLoopTheTree(existing.id, resolvedLeaderId))
+				? resolvedLeaderId
+				: null;
+
 		const patch = buildIntakeBackfillPatch(
 			existing as ExistingMemberRow,
 			values,
+			safeLeaderId,
 		);
 		const backfilledFields = Object.keys(patch);
 

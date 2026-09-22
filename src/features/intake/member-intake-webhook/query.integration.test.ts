@@ -36,6 +36,7 @@ function baseValues(
 		yearOfStudy: null,
 		ministry: null,
 		areaGroup: "main_central",
+		connectLeaderName: null,
 		submittedAt: new Date(),
 		...overrides,
 	};
@@ -64,6 +65,14 @@ describe.skipIf(!process.env.DATABASE_URL)(
 
 		afterAll(async () => {
 			if (createdMemberIds.length > 0) {
+				// Several tests now leave real leaderId references between this
+				// file's own fixtures (a resolved connect leader) — null them out
+				// first, or the `restrict` foreign key refuses to delete whichever
+				// row is still someone's leader.
+				await db
+					.update(members)
+					.set({ leaderId: null })
+					.where(inArray(members.id, createdMemberIds));
 				await db.delete(members).where(inArray(members.id, createdMemberIds));
 			}
 		});
@@ -213,6 +222,211 @@ describe.skipIf(!process.env.DATABASE_URL)(
 				"Hall 1",
 				"Hall 2",
 			]);
+		});
+
+		it("assigns a resolvable connect leader when creating a new member", async () => {
+			const leaderName = "Xyzwquin Fenderbolt";
+			await db.delete(members).where(eq(members.name, leaderName));
+			const [leader] = await db
+				.insert(members)
+				.values({ name: leaderName })
+				.returning({ id: members.id });
+			if (!leader) throw new Error("setup failed");
+			createdMemberIds.push(leader.id);
+
+			const values = baseValues({
+				firstName: "Vrenalis",
+				surname: "Okonda",
+				email: `${TAG}.vrenalis@example.com`,
+				connectLeaderName: leaderName,
+			});
+
+			const result = await upsertMemberFromIntake(values, {
+				source: "test",
+			});
+			expect(result.outcome).toBe("created");
+			if (result.outcome !== "created") throw new Error("unreachable");
+			createdMemberIds.push(result.memberId);
+
+			const [created] = await db
+				.select({ leaderId: members.leaderId })
+				.from(members)
+				.where(eq(members.id, result.memberId));
+			expect(created?.leaderId).toBe(leader.id);
+		});
+
+		it("leaves the new member without a leader when the connect leader name doesn't resolve", async () => {
+			const values = baseValues({
+				firstName: "Halvenor",
+				surname: "Grimstead",
+				email: `${TAG}.halvenor@example.com`,
+				connectLeaderName: "Somebody Nobodyknows",
+			});
+
+			const result = await upsertMemberFromIntake(values, {
+				source: "test",
+			});
+			expect(result.outcome).toBe("created");
+			if (result.outcome !== "created") throw new Error("unreachable");
+			createdMemberIds.push(result.memberId);
+
+			const [created] = await db
+				.select({ leaderId: members.leaderId })
+				.from(members)
+				.where(eq(members.id, result.memberId));
+			expect(created?.leaderId).toBeNull();
+		});
+
+		it("backfills a resolvable connect leader onto an unassigned member it confidently matches", async () => {
+			const leaderName = "Ovantrick Zelshamu";
+			await db.delete(members).where(eq(members.name, leaderName));
+			const [leader] = await db
+				.insert(members)
+				.values({ name: leaderName })
+				.returning({ id: members.id });
+			if (!leader) throw new Error("setup failed");
+			createdMemberIds.push(leader.id);
+
+			const email = `${TAG}.tumelong@example.com`;
+			const [existing] = await db
+				.insert(members)
+				.values({ name: "Tumelong Vraxist", email, leaderId: null })
+				.returning({ id: members.id });
+			if (!existing) throw new Error("setup failed");
+			createdMemberIds.push(existing.id);
+
+			const values = baseValues({
+				firstName: "Tumelong",
+				surname: "Vraxist",
+				email,
+				connectLeaderName: leaderName,
+			});
+
+			const result = await upsertMemberFromIntake(values, {
+				source: "test",
+			});
+			expect(result.outcome).toBe("updated");
+			if (result.outcome !== "updated") throw new Error("unreachable");
+			expect(result.backfilledFields).toContain("leaderId");
+
+			const [after] = await db
+				.select({ leaderId: members.leaderId })
+				.from(members)
+				.where(eq(members.id, existing.id));
+			expect(after?.leaderId).toBe(leader.id);
+		});
+
+		it("never overwrites an existing leader, even when the connect leader field resolves to someone else", async () => {
+			const originalLeaderName = "Original Leaderman";
+			const guessedLeaderName = "New Leaderguess";
+			await db
+				.delete(members)
+				.where(inArray(members.name, [originalLeaderName, guessedLeaderName]));
+			const [originalLeader, guessedLeader] = await db
+				.insert(members)
+				.values([{ name: originalLeaderName }, { name: guessedLeaderName }])
+				.returning({ id: members.id });
+			if (!originalLeader || !guessedLeader) throw new Error("setup failed");
+			createdMemberIds.push(originalLeader.id, guessedLeader.id);
+
+			const email = `${TAG}.quoxaline@example.com`;
+			const [existing] = await db
+				.insert(members)
+				.values({
+					name: "Quoxaline Brandt",
+					email,
+					leaderId: originalLeader.id,
+				})
+				.returning({ id: members.id });
+			if (!existing) throw new Error("setup failed");
+			createdMemberIds.push(existing.id);
+
+			const values = baseValues({
+				firstName: "Quoxaline",
+				surname: "Brandt",
+				email,
+				connectLeaderName: guessedLeaderName,
+			});
+
+			const result = await upsertMemberFromIntake(values, {
+				source: "test",
+			});
+			expect(result.outcome).toBe("updated");
+			if (result.outcome !== "updated") throw new Error("unreachable");
+			expect(result.backfilledFields).not.toContain("leaderId");
+
+			const [after] = await db
+				.select({ leaderId: members.leaderId })
+				.from(members)
+				.where(eq(members.id, existing.id));
+			expect(after?.leaderId).toBe(originalLeader.id);
+		});
+
+		it("never assigns someone as their own connect leader, even when their own name resolves", async () => {
+			const email = `${TAG}.selfreferen@example.com`;
+			const [existing] = await db
+				.insert(members)
+				.values({ name: "Selfreferen Cetest", email, leaderId: null })
+				.returning({ id: members.id });
+			if (!existing) throw new Error("setup failed");
+			createdMemberIds.push(existing.id);
+
+			const values = baseValues({
+				firstName: "Selfreferen",
+				surname: "Cetest",
+				email,
+				connectLeaderName: "Selfreferen Cetest",
+			});
+
+			const result = await upsertMemberFromIntake(values, {
+				source: "test",
+			});
+			expect(result.outcome).toBe("updated");
+			if (result.outcome !== "updated") throw new Error("unreachable");
+			expect(result.backfilledFields).not.toContain("leaderId");
+
+			const [after] = await db
+				.select({ leaderId: members.leaderId })
+				.from(members)
+				.where(eq(members.id, existing.id));
+			expect(after?.leaderId).toBeNull();
+		});
+
+		it("never assigns a leader that would loop the tree back on the submitter", async () => {
+			const email = `${TAG}.cycleguard@example.com`;
+			const [alpha] = await db
+				.insert(members)
+				.values({ name: "Cycleguard Alpha", email, leaderId: null })
+				.returning({ id: members.id });
+			if (!alpha) throw new Error("setup failed");
+			createdMemberIds.push(alpha.id);
+
+			const [beta] = await db
+				.insert(members)
+				.values({ name: "Cycleguard Beta", leaderId: alpha.id })
+				.returning({ id: members.id });
+			if (!beta) throw new Error("setup failed");
+			createdMemberIds.push(beta.id);
+
+			const values = baseValues({
+				firstName: "Cycleguard",
+				surname: "Alpha",
+				email,
+				connectLeaderName: "Cycleguard Beta",
+			});
+
+			const result = await upsertMemberFromIntake(values, {
+				source: "test",
+			});
+			expect(result.outcome).toBe("updated");
+			if (result.outcome !== "updated") throw new Error("unreachable");
+			expect(result.backfilledFields).not.toContain("leaderId");
+
+			const [after] = await db
+				.select({ leaderId: members.leaderId })
+				.from(members)
+				.where(eq(members.id, alpha.id));
+			expect(after?.leaderId).toBeNull();
 		});
 	},
 );

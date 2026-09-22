@@ -195,6 +195,13 @@ export const memberIntakeWebhookSchema = z.object({
 		"areaGroup",
 		AREA_GROUP_ALIASES,
 	),
+	/**
+	 * Free text naming who the submitter says their connect leader is — not
+	 * an enum choice like the others, since it's whoever the member typed, not
+	 * a fixed list. Resolved against existing members by name in `query.ts`;
+	 * blank means "don't know" and is never treated as a failed match.
+	 */
+	connectLeader: optionalText,
 	submittedAt: z.iso.datetime({ offset: true }),
 });
 
@@ -222,6 +229,7 @@ export const memberIntakeSchema = memberIntakeWebhookSchema.transform(
 		yearOfStudy: data.yearOfStudy as YearOfStudy | null,
 		ministry: data.ministry as Ministry | null,
 		areaGroup: data.areaGroup as AreaGroup,
+		connectLeaderName: blankToNull(data.connectLeader),
 		submittedAt: new Date(data.submittedAt),
 	}),
 );

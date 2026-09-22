@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	type MatchCandidatePerson,
+	matchLeaderByName,
 	matchPerson,
 	matchPersonForRemoval,
 	NAME_AUTO_APPLY_THRESHOLD,
@@ -517,5 +518,48 @@ describe("matchPersonForRemoval", () => {
 			[ada],
 		);
 		expect(result).toEqual({ outcome: "NEEDS_REVIEW", candidates: [] });
+	});
+});
+
+describe("matchLeaderByName", () => {
+	const ada: NameOnlyCandidate = { id: "ada-1", name: "Ada Lovelace" };
+	const grace: NameOnlyCandidate = { id: "grace-1", name: "Grace Hopper" };
+	const anotherAda: NameOnlyCandidate = { id: "ada-2", name: "Ada Lovelace" };
+
+	it("resolves an exact name to the one person on file", () => {
+		expect(matchLeaderByName("Ada Lovelace", [ada, grace])).toBe("ada-1");
+	});
+
+	it("is case- and whitespace-insensitive, same as any other name match", () => {
+		expect(matchLeaderByName("  ADA   lovelace ", [ada, grace])).toBe("ada-1");
+	});
+
+	it("resolves a typo at the auto-apply threshold, same tolerance as matchPerson", () => {
+		const precious: NameOnlyCandidate = {
+			id: "precious-1",
+			name: "Precious Ndlovu",
+		};
+		expect(matchLeaderByName("Precius Ndlovu", [precious])).toBe("precious-1");
+	});
+
+	it("returns null when nobody on file resembles the name", () => {
+		expect(matchLeaderByName("Zephyrine Quantock", [ada, grace])).toBeNull();
+	});
+
+	it("returns null rather than guess when the name matches more than one person", () => {
+		expect(matchLeaderByName("Ada Lovelace", [ada, anotherAda])).toBeNull();
+	});
+
+	it("returns null for a single word — not enough to split into first name and surname", () => {
+		expect(matchLeaderByName("Ada", [ada, grace])).toBeNull();
+	});
+
+	it("returns null for a blank string", () => {
+		expect(matchLeaderByName("", [ada, grace])).toBeNull();
+		expect(matchLeaderByName("   ", [ada, grace])).toBeNull();
+	});
+
+	it("does not confuse a first/surname swap for a match", () => {
+		expect(matchLeaderByName("Lovelace Ada", [ada])).toBeNull();
 	});
 });

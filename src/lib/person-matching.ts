@@ -368,3 +368,41 @@ export function matchPersonForRemoval(
 		})),
 	};
 }
+
+/**
+ * Resolves "who did the submitter say their connect leader is" against
+ * everyone on file — free text, not a fixed choice, so there's no schema-level
+ * validation to lean on. Auto-applies at `NAME_AUTO_APPLY_THRESHOLD` (the
+ * same bar `matchPerson`'s name-only tier uses), but only when it resolves to
+ * exactly one person; two or more, or nobody at all, means "don't guess" —
+ * the member is created without a leader and picked up later the same way
+ * any other unassigned member is, through Staging.
+ *
+ * Splits the submitted text the same way a stored name is split
+ * (`splitStoredName`) — a leader named as a single word (no discernible
+ * surname) can never confidently match anyone, which is the right call: a
+ * bare first name is nowhere near enough to safely pick one person out of a
+ * membership this size.
+ */
+export function matchLeaderByName(
+	rawName: string,
+	existingPeople: ReadonlyArray<NameOnlyCandidate>,
+): string | null {
+	const target = splitStoredName(rawName);
+	if (!target.firstName || !target.surname) return null;
+
+	const matches = existingPeople.filter((p) => {
+		const stored = splitStoredName(p.name);
+		return (
+			namesAreClose(
+				stored.firstName,
+				target.firstName,
+				NAME_AUTO_APPLY_THRESHOLD,
+			) &&
+			namesAreClose(stored.surname, target.surname, NAME_AUTO_APPLY_THRESHOLD)
+		);
+	});
+
+	// biome-ignore lint/style/noNonNullAssertion: length === 1 by the check above
+	return matches.length === 1 ? matches[0]!.id : null;
+}

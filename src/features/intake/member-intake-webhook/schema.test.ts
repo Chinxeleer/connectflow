@@ -299,6 +299,39 @@ describe("memberIntakeWebhookSchema", () => {
 		expect(memberIntakeWebhookSchema.safeParse(valid).success).toBe(true);
 	});
 
+	it("accepts a connectLeader name and carries it through as connectLeaderName", () => {
+		const result = memberIntakeSchema.safeParse({
+			...valid,
+			connectLeader: "Blessing Kodze",
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.connectLeaderName).toBe("Blessing Kodze");
+		}
+	});
+
+	it("treats a blank or null connectLeader as not given, same as any other optional field", () => {
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, connectLeader: "" })
+				.success,
+		).toBe(true);
+		expect(
+			memberIntakeWebhookSchema.safeParse({ ...valid, connectLeader: null })
+				.success,
+		).toBe(true);
+
+		const result = memberIntakeSchema.safeParse({
+			...valid,
+			connectLeader: null,
+		});
+		expect(result.success).toBe(true);
+		if (result.success) expect(result.data.connectLeaderName).toBeNull();
+	});
+
+	it("does not require a connectLeader — valid has no connectLeader key at all", () => {
+		expect(memberIntakeWebhookSchema.safeParse(valid).success).toBe(true);
+	});
+
 	it("rejects a submittedAt that is not a valid ISO datetime", () => {
 		expect(
 			memberIntakeWebhookSchema.safeParse({

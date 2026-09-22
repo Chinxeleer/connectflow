@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { user } from "@/db/schema/auth.ts";
 import {
@@ -7,6 +7,7 @@ import {
 } from "@/db/schema/intake-reconciliations.ts";
 import { members } from "@/db/schema/members.ts";
 import { memberIntakeSchema } from "@/features/intake/member-intake-webhook/index.ts";
+import { matchLeaderByName } from "@/lib/person-matching.ts";
 import type { IntakeFieldPatch } from "./schema.ts";
 
 /**
@@ -158,11 +159,25 @@ export async function resolveReconciliationAsNew({
 	const values = memberIntakeSchema.parse(reconciliation.rawPayload);
 
 	return db.transaction(async (tx) => {
+		// Same leader resolution the webhook itself does for a brand-new
+		// member — no self-reference/cycle guard needed here either, for the
+		// same reason: this row doesn't exist yet, so it cannot already be
+		// anyone's ancestor.
+		const leaderCandidates = values.connectLeaderName
+			? await tx
+					.select({ id: members.id, name: members.name })
+					.from(members)
+					.where(isNull(members.removedAt))
+			: [];
+		const resolvedLeaderId = values.connectLeaderName
+			? matchLeaderByName(values.connectLeaderName, leaderCandidates)
+			: null;
+
 		const [created] = await tx
 			.insert(members)
 			.values({
 				name: `${values.firstName} ${values.surname}`,
-				leaderId: null,
+				leaderId: resolvedLeaderId,
 				phone: values.phone,
 				email: values.email,
 				gender: values.gender,
