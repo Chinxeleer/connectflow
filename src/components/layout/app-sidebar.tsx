@@ -10,9 +10,9 @@ import {
 	Settings,
 	ShieldCheck,
 	UsersRound,
-	Waypoints,
 } from "lucide-react";
 import type { ComponentProps } from "react";
+import { Logo } from "@/components/shared/logo.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import {
 	Collapsible,
@@ -85,7 +85,7 @@ export function AppSidebar({
 							className="data-[slot=sidebar-menu-button]:!p-1.5"
 						>
 							<Link to="/dashboard">
-								<Waypoints className="!size-5" />
+								<Logo className="h-5 w-auto" />
 								<span className="text-base font-semibold">{APP_NAME}</span>
 							</Link>
 						</SidebarMenuButton>

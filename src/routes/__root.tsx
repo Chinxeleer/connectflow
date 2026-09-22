@@ -77,7 +77,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		],
 		links: [
 			{ rel: "stylesheet", href: appCss },
-			{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+			{ rel: "icon", href: "/favicon.png", type: "image/png" },
 		],
 	}),
 	notFoundComponent: RootNotFound,

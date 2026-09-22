@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { Waypoints } from "lucide-react";
 import type { ReactNode } from "react";
+import { Logo } from "@/components/shared/logo.tsx";
 import { APP_NAME } from "@/lib/app.ts";
 
 const highlights = [
@@ -20,9 +20,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 			<div className="flex flex-col gap-4 p-6 md:p-10">
 				<div className="flex justify-center gap-2 md:justify-start">
 					<Link to="/" className="flex items-center gap-2 font-medium">
-						<div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-							<Waypoints className="size-4" />
-						</div>
+						<Logo className="h-6 w-auto" />
 						{APP_NAME}
 					</Link>
 				</div>
