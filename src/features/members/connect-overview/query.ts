@@ -12,6 +12,10 @@ export type ConnectOverview = {
 	membersInAConnect: number;
 	/** Direct members carried by the biggest connect in scope. */
 	largestConnect: number;
+	/** Case-insensitive match on `gender = 'female'`. */
+	female: number;
+	/** Case-insensitive match on `gender = 'male'`. */
+	male: number;
 };
 
 /**
@@ -63,6 +67,16 @@ export async function selectConnectOverview(
 			largestConnect: sql<number>`coalesce(max(${directReports}), 0)`.mapWith(
 				Number,
 			),
+			// `gender` is free text (no enum/CHECK constraint), so this matches
+			// case-insensitively and leaves everything else — null, blank, or any
+			// other free-text answer — out of both counts rather than guessing.
+			female:
+				sql<number>`count(*) filter (where lower(${members.gender}) = 'female')`.mapWith(
+					Number,
+				),
+			male: sql<number>`count(*) filter (where lower(${members.gender}) = 'male')`.mapWith(
+				Number,
+			),
 		})
 		.from(members);
 
@@ -75,6 +89,8 @@ export async function selectConnectOverview(
 			activeConnects: 0,
 			membersInAConnect: 0,
 			largestConnect: 0,
+			female: 0,
+			male: 0,
 		}
 	);
 }

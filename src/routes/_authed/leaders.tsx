@@ -3,23 +3,19 @@ import { Suspense } from "react";
 import { SiteHeader } from "@/components/layout/site-header.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
-	ConnectOverviewCards,
-	connectOverviewQueryOptions,
-} from "@/features/members/connect-overview/index.ts";
-import {
-	NeedsAttentionTable,
-	needsAttentionQueryOptions,
-} from "@/features/members/needs-attention/index.ts";
+	NotLeadingStatsCards,
+	NotLeadingTable,
+	notLeadingMembersQueryOptions,
+	notLeadingOverviewQueryOptions,
+} from "@/features/leaders/not-leading/index.ts";
 import { isAdmin } from "@/lib/permissions.ts";
 
-export const Route = createFileRoute("/_authed/dashboard")({
+export const Route = createFileRoute("/_authed/leaders")({
 	loader: ({ context }) => {
-		// Not awaited: the route renders immediately and Suspense fills these in.
-		// Both are scoped server-side, so everyone gets them.
-		void context.queryClient.prefetchQuery(connectOverviewQueryOptions);
-		void context.queryClient.prefetchQuery(needsAttentionQueryOptions);
+		void context.queryClient.prefetchQuery(notLeadingOverviewQueryOptions);
+		void context.queryClient.prefetchQuery(notLeadingMembersQueryOptions);
 	},
-	component: Dashboard,
+	component: LeadersPage,
 });
 
 function CardsSkeleton() {
@@ -32,30 +28,32 @@ function CardsSkeleton() {
 	);
 }
 
-function Dashboard() {
+function LeadersPage() {
 	const { session } = Route.useRouteContext();
 	const admin = isAdmin(session.user);
 
 	return (
 		<>
-			<SiteHeader title="Dashboard" />
+			<SiteHeader title="Leaders" />
 
 			<div className="flex flex-1 flex-col">
 				<div className="@container/main flex flex-1 flex-col gap-2">
 					<div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 						<Suspense fallback={<CardsSkeleton />}>
-							<ConnectOverviewCards />
+							<NotLeadingStatsCards />
 						</Suspense>
 
 						<div className="px-4 lg:px-6">
-							<h2 className="mb-1 text-base font-medium">Needs attention</h2>
+							<h2 className="mb-1 text-base font-medium">
+								Not leading a connect yet
+							</h2>
 							<p className="text-muted-foreground mb-4 text-sm">
 								{admin
-									? "Everyone without a connect leader, not yet leading a connect of their own, or both."
-									: "Your people without a connect leader, not yet leading a connect of their own, or both."}
+									? "Everyone in the system with nobody reporting to them yet."
+									: "The people under you with nobody reporting to them yet."}
 							</p>
 							<Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
-								<NeedsAttentionTable />
+								<NotLeadingTable />
 							</Suspense>
 						</div>
 					</div>

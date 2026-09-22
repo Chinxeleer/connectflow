@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import {
-	CalendarCheck,
 	ChevronRight,
 	ClipboardList,
+	Crown,
 	LayoutDashboard,
 	MapPin,
 	Network,
@@ -46,6 +46,7 @@ import { NavUser } from "./nav-user.tsx";
 const navMain = [
 	{ title: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
 	{ title: "Members", to: "/members", icon: UsersRound },
+	{ title: "Leaders", to: "/leaders", icon: Crown },
 	{ title: "Hierarchy", to: "/hierarchy", icon: Network },
 ] as const;
 
@@ -56,10 +57,7 @@ const navAdmin = [{ title: "Users", to: "/users", icon: ShieldCheck }] as const;
  * The rest of the product per the spec. Rendered disabled rather than as links,
  * so the shape of the app is visible without any nav item 404-ing.
  */
-const navPlanned = [
-	{ title: "Leaders", icon: CalendarCheck },
-	{ title: "Settings", icon: Settings },
-] as const;
+const navPlanned = [{ title: "Settings", icon: Settings }] as const;
 
 export function AppSidebar({
 	user,

@@ -7,6 +7,8 @@ const overview = (partial: Partial<ConnectOverview>): ConnectOverview => ({
 	activeConnects: 0,
 	membersInAConnect: 0,
 	largestConnect: 0,
+	female: 0,
+	male: 0,
 	...partial,
 });
 

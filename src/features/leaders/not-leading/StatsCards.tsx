@@ -1,11 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import {
-	Gauge,
-	Network,
-	TriangleAlert,
-	Users,
-	VenusAndMars,
-} from "lucide-react";
+import { TriangleAlert, UserCheck, UserRound, Users } from "lucide-react";
 import type { ComponentType } from "react";
 import { Badge } from "@/components/ui/badge.tsx";
 import {
@@ -17,8 +11,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card.tsx";
 import { cn } from "@/lib/utils.ts";
-import { connectOverviewQueryOptions } from "./action.ts";
-import { averageConnectSize } from "./query.ts";
+import { notLeadingOverviewQueryOptions } from "./action.ts";
 
 function StatCard({
 	label,
@@ -30,7 +23,7 @@ function StatCard({
 	tone = "neutral",
 }: {
 	label: string;
-	value: string | number;
+	value: number;
 	icon: ComponentType<{ className?: string }>;
 	badge: string;
 	headline: string;
@@ -56,7 +49,7 @@ function StatCard({
 				<CardTitle
 					className={cn(
 						"text-2xl font-semibold tabular-nums @[250px]/card:text-3xl",
-						warning && value !== 0 && "text-amber-700 dark:text-amber-400",
+						warning && value > 0 && "text-amber-700 dark:text-amber-400",
 					)}
 				>
 					{value}
@@ -83,68 +76,46 @@ function StatCard({
 }
 
 /**
- * How the connects are doing, scoped server-side — an admin sees the whole
- * system, a leader sees the people directly under them.
+ * Counts are already scoped server-side — an admin sees the whole system, a
+ * leader sees only their own direct members.
  */
-export function ConnectOverviewCards() {
-	const { data } = useSuspenseQuery(connectOverviewQueryOptions);
-	const average = averageConnectSize(data);
-	const genderUnspecified = data.totalMembers - data.female - data.male;
+export function NotLeadingStatsCards() {
+	const { data } = useSuspenseQuery(notLeadingOverviewQueryOptions);
 
 	return (
 		<div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
 			<StatCard
-				label="Members"
+				label="Total Members"
 				value={data.totalMembers}
 				icon={Users}
 				badge="in scope"
 				headline="Everyone you can see"
-				detail={`${data.membersInAConnect} of them sit in a connect`}
+				detail="Admins see all; leaders see their own group"
 			/>
 			<StatCard
-				label="Without a Connect"
-				value={data.withoutConnect}
+				label="Not Leading a Connect"
+				value={data.notLeadingAConnect}
+				icon={UserRound}
+				badge="no group"
+				headline="Nobody reports to them yet"
+				detail="Candidates who could take on a connect of their own"
+			/>
+			<StatCard
+				label="Without a Leader Too"
+				value={data.withoutALeaderToo}
 				icon={TriangleAlert}
-				badge="unassigned"
-				headline={
-					data.withoutConnect === 0
-						? "Everyone has a connect leader"
-						: "Waiting on a connect leader"
-				}
-				detail="These need assigning before induction can start"
+				badge="disconnected"
+				headline="Not leading, and nobody leads them either"
+				detail="The most urgent: not connected to the structure at all"
 				tone="warning"
 			/>
 			<StatCard
-				label="Active Connects"
-				value={data.activeConnects}
-				icon={Network}
-				badge="running"
-				headline="Connects currently meeting"
-				detail="Members with at least one person under them"
-			/>
-			<StatCard
-				label="Average Connect Size"
-				value={average}
-				icon={Gauge}
-				badge="per connect"
-				headline={
-					data.largestConnect > 0
-						? `Largest carries ${data.largestConnect}`
-						: "No connects yet"
-				}
-				detail="Members carried directly, averaged across connects"
-			/>
-			<StatCard
-				label="Gender"
-				value={`${data.female}F · ${data.male}M`}
-				icon={VenusAndMars}
-				badge="female · male"
-				headline="Members with a gender recorded"
-				detail={
-					genderUnspecified > 0
-						? `${genderUnspecified} not specified`
-						: "Everyone's gender is on file"
-				}
+				label="Assigned to a Leader"
+				value={data.assignedToALeader}
+				icon={UserCheck}
+				badge="connected"
+				headline="Not leading, but part of a connect"
+				detail="Regular connect members — not leading is normal here"
 			/>
 		</div>
 	);
