@@ -14,6 +14,7 @@ import {
 	MemberProfile,
 	memberDetailQueryOptions,
 } from "@/features/members/member-detail/index.ts";
+import { isAdmin } from "@/lib/permissions.ts";
 
 export const Route = createFileRoute("/_authed/members/$memberId")({
 	loader: ({ context, params }) => {
@@ -57,6 +58,8 @@ function MemberProfileError() {
 
 function MemberProfilePage() {
 	const { memberId } = Route.useParams();
+	const { session } = Route.useRouteContext();
+	const admin = isAdmin(session.user);
 
 	return (
 		<>
@@ -67,7 +70,7 @@ function MemberProfilePage() {
 					<div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
 						<div className="px-4 lg:px-6">
 							<Suspense fallback={<Skeleton className="h-96 rounded-lg" />}>
-								<MemberProfile memberId={memberId} />
+								<MemberProfile memberId={memberId} canGrantAccess={admin} />
 							</Suspense>
 						</div>
 					</div>

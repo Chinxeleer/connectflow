@@ -15,6 +15,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card.tsx";
+import { GrantMemberAccessDialog } from "../grant-member-access/index.ts";
 import { UpdateMemberProfileForm } from "../update-member-profile/Form.tsx";
 import { memberDetailQueryOptions } from "./action.ts";
 
@@ -58,7 +59,13 @@ function Refused({ title, body }: { title: string; body: string }) {
 	);
 }
 
-export function MemberProfile({ memberId }: { memberId: string }) {
+export function MemberProfile({
+	memberId,
+	canGrantAccess = false,
+}: {
+	memberId: string;
+	canGrantAccess?: boolean;
+}) {
 	const { data } = useSuspenseQuery(memberDetailQueryOptions(memberId));
 	const [editing, setEditing] = useState(false);
 
@@ -167,7 +174,15 @@ export function MemberProfile({ memberId }: { memberId: string }) {
 							) : undefined}
 						</DetailRow>
 						<DetailRow label="Sign-in account">
-							{member.hasAccount ? "Linked" : undefined}
+							{member.hasAccount ? (
+								"Linked"
+							) : canGrantAccess ? (
+								<GrantMemberAccessDialog
+									memberId={member.id}
+									memberName={member.name}
+									memberEmail={member.email}
+								/>
+							) : undefined}
 						</DetailRow>
 					</dl>
 				)}

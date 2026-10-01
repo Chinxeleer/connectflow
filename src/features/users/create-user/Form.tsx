@@ -1,8 +1,12 @@
 import { useForm } from "@tanstack/react-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, Copy, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { useState } from "react";
+import {
+	CredentialsPanel,
+	type GrantedCredentials,
+} from "@/components/shared/credentials-panel.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
 	Dialog,
@@ -33,85 +37,11 @@ import { usersQueryOptions } from "@/features/users/list-users/index.ts";
 import { createUser } from "./action.ts";
 import { createUserSchema } from "./schema.ts";
 
-type Created = {
-	name: string;
-	email: string;
-	temporaryPassword: string;
-};
-
-/** Shown once after creation — the password is not recoverable afterwards. */
-function CredentialsPanel({
-	created,
-	onDone,
-	onAddAnother,
-}: {
-	created: Created;
-	onDone: () => void;
-	onAddAnother: () => void;
-}) {
-	const [copied, setCopied] = useState(false);
-
-	return (
-		<>
-			<DialogHeader>
-				<DialogTitle>{created.name} can now sign in</DialogTitle>
-				<DialogDescription>
-					This password is shown once and cannot be retrieved later. Send it to
-					them directly — there is no password-reset email yet.
-				</DialogDescription>
-			</DialogHeader>
-
-			<div className="flex flex-col gap-3 rounded-lg border bg-muted/40 p-4">
-				<div className="flex flex-col gap-1">
-					<span className="text-muted-foreground text-xs">Email</span>
-					<span className="font-medium break-all">{created.email}</span>
-				</div>
-				<div className="flex flex-col gap-1">
-					<span className="text-muted-foreground text-xs">
-						Temporary password
-					</span>
-					<div className="flex items-center gap-2">
-						<code className="flex-1 rounded-md border bg-background px-3 py-2 font-mono text-sm break-all">
-							{created.temporaryPassword}
-						</code>
-						<Button
-							type="button"
-							variant="outline"
-							size="icon"
-							aria-label="Copy password"
-							onClick={async () => {
-								await navigator.clipboard.writeText(created.temporaryPassword);
-								setCopied(true);
-								setTimeout(() => setCopied(false), 2000);
-							}}
-						>
-							{copied ? (
-								<Check className="size-4" />
-							) : (
-								<Copy className="size-4" />
-							)}
-						</Button>
-					</div>
-				</div>
-			</div>
-
-			<DialogFooter>
-				<Button type="button" variant="outline" onClick={onAddAnother}>
-					Add another
-				</Button>
-				<Button type="button" onClick={onDone}>
-					Done
-				</Button>
-			</DialogFooter>
-		</>
-	);
-}
-
 export function CreateUserDialog() {
 	const createUserFn = useServerFn(createUser);
 	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
-	const [created, setCreated] = useState<Created | null>(null);
+	const [created, setCreated] = useState<GrantedCredentials | null>(null);
 	const [formError, setFormError] = useState<string | null>(null);
 
 	const form = useForm({
@@ -161,6 +91,7 @@ export function CreateUserDialog() {
 				{created ? (
 					<CredentialsPanel
 						created={created}
+						title={`${created.name} can now sign in`}
 						onDone={() => setOpen(false)}
 						onAddAnother={reset}
 					/>
