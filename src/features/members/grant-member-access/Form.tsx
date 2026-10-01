@@ -51,9 +51,6 @@ export function GrantMemberAccessDialog({
 			try {
 				const result = await grantMemberAccessFn({ data: value });
 				setCreated(result);
-				await queryClient.invalidateQueries({
-					queryKey: memberDetailQueryOptions(memberId).queryKey,
-				});
 			} catch (error) {
 				setFormError(
 					error instanceof Error
@@ -75,7 +72,20 @@ export function GrantMemberAccessDialog({
 			open={open}
 			onOpenChange={(next) => {
 				setOpen(next);
-				if (!next) reset();
+				if (!next) {
+					// Deferred until the dialog is actually closing: the member
+					// query's `hasAccount` flips to true once this invalidates,
+					// which swaps this whole dialog out for a plain "Linked" label
+					// in the parent — invalidating any earlier than this would
+					// yank the credentials panel out from under the admin before
+					// they finish reading the password.
+					if (created) {
+						void queryClient.invalidateQueries({
+							queryKey: memberDetailQueryOptions(memberId).queryKey,
+						});
+					}
+					reset();
+				}
 			}}
 		>
 			<DialogTrigger asChild>

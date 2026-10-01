@@ -16,6 +16,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card.tsx";
 import { GrantMemberAccessDialog } from "../grant-member-access/index.ts";
+import { ResetMemberPasswordDialog } from "../reset-member-password/index.ts";
 import { UpdateMemberProfileForm } from "../update-member-profile/Form.tsx";
 import { memberDetailQueryOptions } from "./action.ts";
 
@@ -175,7 +176,17 @@ export function MemberProfile({
 						</DetailRow>
 						<DetailRow label="Sign-in account">
 							{member.hasAccount ? (
-								"Linked"
+								canGrantAccess ? (
+									<div className="flex items-center gap-3">
+										<span>Linked</span>
+										<ResetMemberPasswordDialog
+											memberId={member.id}
+											memberName={member.name}
+										/>
+									</div>
+								) : (
+									"Linked"
+								)
 							) : canGrantAccess ? (
 								<GrantMemberAccessDialog
 									memberId={member.id}
