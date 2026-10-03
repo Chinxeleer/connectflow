@@ -11,6 +11,7 @@ import {
 	verification,
 } from "@/db/schema/auth.ts";
 import { APP_NAME } from "./app.ts";
+import { renderEmailLayout, sendEmail } from "./email-client.ts";
 import { ac, roles } from "./permissions-ac.ts";
 
 export const auth = betterAuth({
@@ -22,10 +23,46 @@ export const auth = betterAuth({
 	emailAndPassword: {
 		enabled: true,
 		minPasswordLength: 8,
-		// No transactional email provider is wired yet, so verification links
-		// would go nowhere. Flip this on together with `emailVerification`.
+		// Not required to sign in: accounts are admin-created with a temporary
+		// password and expected to work immediately, not block on a clicked
+		// link. The email still goes out — this only governs whether it's
+		// enforced.
 		requireEmailVerification: false,
 		autoSignIn: true,
+		sendResetPassword: async ({ user: recipient, url }) => {
+			try {
+				await sendEmail({
+					to: recipient.email,
+					subject: `Reset your ${APP_NAME} password`,
+					html: renderEmailLayout({
+						heading: "Reset your password",
+						bodyHtml: `<p>We got a request to reset the password on your ${APP_NAME} account. This link is valid for one hour — if you didn't ask for this, you can ignore it.</p>`,
+						action: { label: "Reset password", url },
+					}),
+				});
+			} catch (error) {
+				console.error("Failed to send password reset email", error);
+			}
+		},
+	},
+	emailVerification: {
+		sendOnSignUp: true,
+		autoSignInAfterVerification: true,
+		sendVerificationEmail: async ({ user: recipient, url }) => {
+			try {
+				await sendEmail({
+					to: recipient.email,
+					subject: `Verify your ${APP_NAME} email`,
+					html: renderEmailLayout({
+						heading: "Verify your email",
+						bodyHtml: `<p>Confirm this is your email address to finish setting up your ${APP_NAME} account.</p>`,
+						action: { label: "Verify email", url },
+					}),
+				});
+			} catch (error) {
+				console.error("Failed to send verification email", error);
+			}
+		},
 	},
 	session: {
 		expiresIn: 60 * 60 * 24 * 7,

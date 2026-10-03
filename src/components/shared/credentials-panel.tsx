@@ -12,6 +12,12 @@ export type GrantedCredentials = {
 	name: string;
 	email: string;
 	temporaryPassword: string;
+	/**
+	 * Whether an email with these details was also sent — `undefined` when
+	 * this flow doesn't attempt to email at all (`create-user`, which has no
+	 * member record to send on behalf of).
+	 */
+	emailed?: boolean;
 };
 
 /**
@@ -38,8 +44,12 @@ export function CredentialsPanel({
 			<DialogHeader>
 				<DialogTitle>{title}</DialogTitle>
 				<DialogDescription>
-					This password is shown once and cannot be retrieved later. Send it to
-					them directly — there is no password-reset email yet.
+					This password is shown once and cannot be retrieved later.{" "}
+					{created.emailed === true
+						? "It's also been emailed to them."
+						: created.emailed === false
+							? "We couldn't email it to them automatically — send it directly."
+							: "Send it to them directly."}
 				</DialogDescription>
 			</DialogHeader>
 

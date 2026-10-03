@@ -93,7 +93,9 @@ Better Auth, split across these files:
 
 **Persisted** via the Drizzle adapter against `src/db/schema/auth.ts` (user/session/account/verification/rate_limit). `role` is a `user_role` pg enum owned by better-auth's `admin()` plugin.
 
-**There is no public sign-up.** `/` is the login page and the only unauthenticated route; accounts are created by an admin through `features/users/create-user` (a `createServerFn` that calls `requireAdmin` and then `auth.api.createUser`). Passwords are never chosen by a human — `@/lib/password.ts` generates one server-side and it is returned to the creating admin exactly once. Bootstrap the first admin by creating a user and promoting it with SQL.
+**There is no public sign-up.** Accounts are created by an admin through `features/users/create-user` (a `createServerFn` that calls `requireAdmin` and then `auth.api.createUser`), or linked to an existing member via `features/members/grant-member-access` (same idea, plus sets `members.userId`). Passwords are never chosen by a human at creation — `@/lib/password.ts` generates one server-side and it is returned to the creating admin exactly once. Bootstrap the first admin by creating a user and promoting it with SQL. `/`, `/forgot-password`, and `/reset-password` are the only unauthenticated routes — the latter two are self-service password recovery (an account that already exists resetting its own password), not sign-up.
+
+An admin can also regenerate a member's password directly via `features/members/reset-member-password` (`auth.api.setUserPassword`) — the only recovery path for someone locked out before they ever signed in, since forgot-password requires knowing the current one's never been set to something they'd remember.
 
 Guards resolve the session with `queryClient.fetchQuery(sessionQueryOptions)`, **not** `ensureQueryData` — the latter returns cached data even once invalidated, so a fresh sign-in reads the pre-login `null` and bounces back to the login page. For the same reason a route `beforeLoad` must not call `router.invalidate()` on a route whose own `beforeLoad` throws a redirect: the interrupt leaves the promise unresolved and the form hangs.
 
@@ -155,6 +157,7 @@ The approved stack. Items marked *(not installed yet)* are the designated choice
 ### Integrations
 - **Google Apps Script** — external, not an npm package; webhook sender for form intake
 - **WhatsApp Cloud API** — leader confirmation messages, called from `@/lib/whatsapp-client.ts` with plain `fetch`; no third-party WhatsApp SDK
+- **Resend** — transactional email (verification, password reset, granted/reset login credentials), called from `@/lib/email-client.ts` with plain `fetch`; no `resend` SDK package. `RESEND_API_KEY` / `RESEND_FROM_EMAIL` env vars; sending domain is `notifications.everynationcampuswits.org`, verified in the Resend dashboard.
 
 ### Package manager
 - **pnpm** only — no npm or yarn lockfiles in the repo
