@@ -115,7 +115,7 @@ Two separate mechanisms; pick by where the value is read:
 - `src/env.ts` (`@t3-oss/env-core` + Zod) validates `import.meta.env` — client vars must be `VITE_`-prefixed. Import as `import { env } from '@/env'`.
 - `process.env.DATABASE_URL` is read directly in `src/db/index.ts`, `src/db.ts`, and `drizzle.config.ts` (the latter loads `.env.local` then `.env` via dotenv).
 
-For production, secrets go in via `wrangler secret put <NAME>`; non-secret vars go in `wrangler.jsonc` under `vars`.
+For production, secrets go in via `wrangler secret put <NAME>`; non-secret vars go in `wrangler.jsonc` under `vars` — `BETTER_AUTH_URL` is the one example of this today, pinned to `https://connect.everynationcampuswits.org` rather than left to Better Auth's per-request origin fallback (safer: immune to a stale value surviving a domain change, or to the app ever being reached through a `*.workers.dev` preview URL). Confirmed empirically that this doesn't leak into `pnpm dev` — `.env.local`'s own `BETTER_AUTH_URL` still wins there, so local auth's origin-check keeps matching whatever port `pnpm dev` actually runs on.
 
 ### Deployment
 Cloudflare Workers via `@cloudflare/vite-plugin` (`viteEnvironment: { name: 'ssr' }`) and `wrangler.jsonc`, whose `main` points at `@tanstack/react-start/server-entry` and whose `name` (`connectflow`) must match the Worker's name in the Cloudflare dashboard — Workers Builds flags a drift between the two rather than deploying under a different name. KV/D1/R2/DO bindings would be added there. Plugin order in `vite.config.ts` matters — `devtools()` must stay first.

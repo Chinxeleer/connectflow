@@ -3,5 +3,14 @@
   "name": "connectflow",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry"
+  "main": "@tanstack/react-start/server-entry",
+  "vars": {
+    // Not secret — just the deployed origin. Pinned explicitly so every
+    // auth link (password reset, email verification) always points at the
+    // real domain, rather than relying on Better Auth's per-request
+    // fallback (the incoming request's own origin), which would silently
+    // break if ever requested through a workers.dev preview URL or behind
+    // an unexpected proxy.
+    "BETTER_AUTH_URL": "https://connect.everynationcampuswits.org"
+  }
 }
