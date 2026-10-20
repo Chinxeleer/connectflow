@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { SiteHeader } from "@/components/layout/site-header.tsx";
+import { IntakeFormLink } from "@/components/shared/intake-form-link.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import {
 	ConnectOverviewCards,
@@ -46,6 +47,8 @@ function Dashboard() {
 						<Suspense fallback={<CardsSkeleton />}>
 							<ConnectOverviewCards />
 						</Suspense>
+
+						<IntakeFormLink />
 
 						<div className="px-4 lg:px-6">
 							<h2 className="mb-1 text-base font-medium">Needs attention</h2>
