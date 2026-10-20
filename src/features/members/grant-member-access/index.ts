@@ -1,4 +1,8 @@
-export { grantMemberAccess } from "./action.ts";
+export {
+	type GrantAccessResult,
+	grantAccessCore,
+	grantMemberAccess,
+} from "./action.ts";
 export { GrantMemberAccessDialog } from "./Form.tsx";
 export {
 	type GrantMemberAccessInput,

@@ -35,6 +35,7 @@ import {
 	TableRow,
 } from "@/components/ui/table.tsx";
 import { MINISTRY_LABELS } from "@/db/schema/members.ts";
+import { SendAccessButton } from "@/features/leaders/grant-access/index.ts";
 import { connectLeadersQueryOptions } from "./action.ts";
 import type { ConnectLeaderRow } from "./query.ts";
 
@@ -54,61 +55,90 @@ const features = tableFeatures({
 	filterFns: { includesString: filterFn_includesString },
 });
 
-const columns: ColumnDef<typeof features, ConnectLeaderRow>[] = [
-	{
-		accessorKey: "name",
-		header: "Connect leader",
-		sortFn: "text",
-		cell: ({ row }) => (
-			<Link
-				to="/members/$memberId"
-				params={{ memberId: row.original.id }}
-				className="font-medium underline-offset-4 hover:underline"
-			>
-				{row.original.name}
-			</Link>
-		),
-	},
-	{
-		accessorKey: "status",
-		header: "Status",
-		sortFn: "text",
-		cell: ({ row }) => (
-			<Badge variant="outline" className="font-normal">
-				{row.original.status}
-			</Badge>
-		),
-	},
-	{
-		accessorKey: "ministry",
-		header: "Ministry",
-		sortFn: "text",
-		cell: ({ row }) =>
-			row.original.ministry ? (
-				MINISTRY_LABELS[row.original.ministry]
-			) : (
+function buildColumns(
+	canGrantAccess: boolean,
+): ColumnDef<typeof features, ConnectLeaderRow>[] {
+	const columns: ColumnDef<typeof features, ConnectLeaderRow>[] = [
+		{
+			accessorKey: "name",
+			header: "Connect leader",
+			sortFn: "text",
+			cell: ({ row }) => (
+				<Link
+					to="/members/$memberId"
+					params={{ memberId: row.original.id }}
+					className="font-medium underline-offset-4 hover:underline"
+				>
+					{row.original.name}
+				</Link>
+			),
+		},
+		{
+			accessorKey: "status",
+			header: "Status",
+			sortFn: "text",
+			cell: ({ row }) => (
 				<Badge variant="outline" className="font-normal">
-					Not serving anywhere yet
+					{row.original.status}
 				</Badge>
 			),
-	},
-	{
-		accessorKey: "directMembers",
-		header: "Members leading",
-		sortFn: "basic",
-		cell: ({ row }) => (
-			<span className="tabular-nums font-medium">
-				{row.original.directMembers}
-			</span>
-		),
-	},
-];
+		},
+		{
+			accessorKey: "ministry",
+			header: "Ministry",
+			sortFn: "text",
+			cell: ({ row }) =>
+				row.original.ministry ? (
+					MINISTRY_LABELS[row.original.ministry]
+				) : (
+					<Badge variant="outline" className="font-normal">
+						Not serving anywhere yet
+					</Badge>
+				),
+		},
+		{
+			accessorKey: "directMembers",
+			header: "Members leading",
+			sortFn: "basic",
+			cell: ({ row }) => (
+				<span className="tabular-nums font-medium">
+					{row.original.directMembers}
+				</span>
+			),
+		},
+	];
+
+	if (canGrantAccess) {
+		columns.push({
+			accessorKey: "hasAccount",
+			header: "Access",
+			sortFn: "basic",
+			cell: ({ row }) =>
+				row.original.hasAccount ? (
+					<span className="text-muted-foreground text-xs">Linked</span>
+				) : (
+					<SendAccessButton
+						memberId={row.original.id}
+						email={row.original.email}
+					/>
+				),
+		});
+	}
+
+	return columns;
+}
 
 /**
  * Rows arrive already scoped: an admin sees every connect leader, a leader
- * sees themselves and any sub-leaders under them.
+ * sees themselves and any sub-leaders under them. The "Access" column only
+ * renders for an admin — granting a login is an admin action, same as
+ * everywhere else it appears.
  */
-export function ConnectLeadersTable() {
+export function ConnectLeadersTable({
+	canGrantAccess = false,
+}: {
+	canGrantAccess?: boolean;
+}) {
 	const { data } = useSuspenseQuery(connectLeadersQueryOptions);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
@@ -116,6 +146,7 @@ export function ConnectLeadersTable() {
 		pageIndex: 0,
 		pageSize: DEFAULT_PAGE_SIZE,
 	});
+	const [columns] = useState(() => buildColumns(canGrantAccess));
 
 	const table = useTable({
 		features,

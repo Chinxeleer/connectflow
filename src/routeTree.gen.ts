@@ -17,6 +17,7 @@ import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedHierarchyRouteImport } from './routes/_authed/hierarchy'
 import { Route as AuthedLeadersRouteImport } from './routes/_authed/leaders'
 import { Route as AuthedReviewQueueRouteImport } from './routes/_authed/review-queue'
+import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedAreasIndexRouteImport } from './routes/_authed/areas/index'
 import { Route as AuthedAreasAreaGroupRouteImport } from './routes/_authed/areas/$areaGroup'
 import { Route as AuthedMembersIndexRouteImport } from './routes/_authed/members/index'
@@ -66,6 +67,11 @@ const AuthedLeadersRoute = AuthedLeadersRouteImport.update({
 const AuthedReviewQueueRoute = AuthedReviewQueueRouteImport.update({
   id: '/review-queue',
   path: '/review-queue',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedAreasIndexRoute = AuthedAreasIndexRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/hierarchy': typeof AuthedHierarchyRoute
   '/leaders': typeof AuthedLeadersRoute
   '/review-queue': typeof AuthedReviewQueueRoute
+  '/settings': typeof AuthedSettingsRoute
   '/areas/$areaGroup': typeof AuthedAreasAreaGroupRoute
   '/members/$memberId': typeof AuthedMembersMemberIdRoute
   '/staging/needs-review': typeof AuthedStagingNeedsReviewRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/hierarchy': typeof AuthedHierarchyRoute
   '/leaders': typeof AuthedLeadersRoute
   '/review-queue': typeof AuthedReviewQueueRoute
+  '/settings': typeof AuthedSettingsRoute
   '/areas/$areaGroup': typeof AuthedAreasAreaGroupRoute
   '/members/$memberId': typeof AuthedMembersMemberIdRoute
   '/staging/needs-review': typeof AuthedStagingNeedsReviewRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/_authed/hierarchy': typeof AuthedHierarchyRoute
   '/_authed/leaders': typeof AuthedLeadersRoute
   '/_authed/review-queue': typeof AuthedReviewQueueRoute
+  '/_authed/settings': typeof AuthedSettingsRoute
   '/_authed/areas/$areaGroup': typeof AuthedAreasAreaGroupRoute
   '/_authed/members/$memberId': typeof AuthedMembersMemberIdRoute
   '/_authed/staging/needs-review': typeof AuthedStagingNeedsReviewRoute
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/hierarchy'
     | '/leaders'
     | '/review-queue'
+    | '/settings'
     | '/areas/$areaGroup'
     | '/members/$memberId'
     | '/staging/needs-review'
@@ -220,6 +230,7 @@ export interface FileRouteTypes {
     | '/hierarchy'
     | '/leaders'
     | '/review-queue'
+    | '/settings'
     | '/areas/$areaGroup'
     | '/members/$memberId'
     | '/staging/needs-review'
@@ -241,6 +252,7 @@ export interface FileRouteTypes {
     | '/_authed/hierarchy'
     | '/_authed/leaders'
     | '/_authed/review-queue'
+    | '/_authed/settings'
     | '/_authed/areas/$areaGroup'
     | '/_authed/members/$memberId'
     | '/_authed/staging/needs-review'
@@ -320,6 +332,13 @@ declare module '@tanstack/react-router' {
       path: '/review-queue'
       fullPath: '/review-queue'
       preLoaderRoute: typeof AuthedReviewQueueRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/settings': {
+      id: '/_authed/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthedSettingsRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/areas/': {
@@ -407,6 +426,7 @@ interface AuthedRouteChildren {
   AuthedHierarchyRoute: typeof AuthedHierarchyRoute
   AuthedLeadersRoute: typeof AuthedLeadersRoute
   AuthedReviewQueueRoute: typeof AuthedReviewQueueRoute
+  AuthedSettingsRoute: typeof AuthedSettingsRoute
   AuthedAreasAreaGroupRoute: typeof AuthedAreasAreaGroupRoute
   AuthedMembersMemberIdRoute: typeof AuthedMembersMemberIdRoute
   AuthedStagingNeedsReviewRoute: typeof AuthedStagingNeedsReviewRoute
@@ -422,6 +442,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedHierarchyRoute: AuthedHierarchyRoute,
   AuthedLeadersRoute: AuthedLeadersRoute,
   AuthedReviewQueueRoute: AuthedReviewQueueRoute,
+  AuthedSettingsRoute: AuthedSettingsRoute,
   AuthedAreasAreaGroupRoute: AuthedAreasAreaGroupRoute,
   AuthedMembersMemberIdRoute: AuthedMembersMemberIdRoute,
   AuthedStagingNeedsReviewRoute: AuthedStagingNeedsReviewRoute,

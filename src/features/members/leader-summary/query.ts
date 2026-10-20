@@ -1,10 +1,15 @@
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
 import { type MemberScope, memberScopeWithSelfWhere } from "../scope.ts";
 
 const report = alias(members, "report");
+
+/** Whether this leader already has a login — drives the "send access" button. */
+const hasAccount = sql<boolean>`(${members.userId} is not null)`.mapWith(
+	Boolean,
+);
 
 /**
  * Everyone who leads a connect, with how many people sit under them.
@@ -29,12 +34,21 @@ export function selectConnectLeaders(scope: MemberScope) {
 			name: members.name,
 			status: members.status,
 			ministry: members.ministry,
+			email: members.email,
+			hasAccount,
 			directMembers: count(report.id),
 		})
 		.from(members)
 		.innerJoin(report, eq(report.leaderId, members.id))
 		.where(where)
-		.groupBy(members.id, members.name, members.status, members.ministry)
+		.groupBy(
+			members.id,
+			members.name,
+			members.status,
+			members.ministry,
+			members.email,
+			members.userId,
+		)
 		.orderBy(desc(count(report.id)), asc(members.name));
 }
 

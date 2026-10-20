@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { TriangleAlert, UserCheck, UserRound, Users } from "lucide-react";
+import { Crown, KeyRound, TriangleAlert } from "lucide-react";
 import type { ComponentType } from "react";
 import { Badge } from "@/components/ui/badge.tsx";
 import {
@@ -11,7 +11,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card.tsx";
 import { cn } from "@/lib/utils.ts";
-import { notLeadingOverviewQueryOptions } from "./action.ts";
+import { leaderStatsQueryOptions } from "./action.ts";
 
 function StatCard({
 	label,
@@ -77,45 +77,45 @@ function StatCard({
 
 /**
  * Counts are already scoped server-side — an admin sees the whole system, a
- * leader sees only their own direct members.
+ * leader sees themselves and any sub-leaders under them.
  */
-export function NotLeadingStatsCards() {
-	const { data } = useSuspenseQuery(notLeadingOverviewQueryOptions);
+export function LeaderStatsCards() {
+	const { data } = useSuspenseQuery(leaderStatsQueryOptions);
 
 	return (
-		<div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
+		<div className="grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-3 dark:*:data-[slot=card]:bg-card">
 			<StatCard
-				label="Total Members"
-				value={data.totalMembers}
-				icon={Users}
-				badge="in scope"
-				headline="Everyone you can see"
-				detail="Admins see all; leaders see their own group"
+				label="Leaders"
+				value={data.totalLeaders}
+				icon={Crown}
+				badge="leading a connect"
+				headline="People with at least one member under them"
+				detail="This is what makes someone a leader here"
 			/>
 			<StatCard
-				label="Not Leading a Connect"
-				value={data.notLeadingAConnect}
-				icon={UserRound}
-				badge="no group"
-				headline="Nobody reports to them yet"
-				detail="Candidates who could take on a connect of their own"
-			/>
-			<StatCard
-				label="Without a Leader Too"
-				value={data.withoutALeaderToo}
-				icon={TriangleAlert}
-				badge="disconnected"
-				headline="Not leading, and nobody leads them either"
-				detail="The most urgent: not connected to the structure at all"
+				label="Without Login Access"
+				value={data.withoutAccess}
+				icon={KeyRound}
+				badge="can send"
+				headline={
+					data.withoutAccess === 0
+						? "Every leader has access"
+						: "Ready for a login to be sent"
+				}
+				detail="Has an email on file — one click away"
 				tone="warning"
 			/>
 			<StatCard
-				label="Assigned to a Leader"
-				value={data.assignedToALeader}
-				icon={UserCheck}
-				badge="connected"
-				headline="Not leading, but part of a connect"
-				detail="Regular connect members — not leading is normal here"
+				label="Missing an Email"
+				value={data.missingEmail}
+				icon={TriangleAlert}
+				badge="can't send yet"
+				headline={
+					data.missingEmail === 0
+						? "Nobody is missing an email"
+						: "No email on file to send access to"
+				}
+				detail="Add an email to their profile first"
 			/>
 		</div>
 	);
