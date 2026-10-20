@@ -85,11 +85,22 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 	shellComponent: RootDocument,
 });
 
+/**
+ * Applies the stored theme before first paint — must run synchronously,
+ * ahead of React hydration, or a dark-mode visitor sees a flash of the light
+ * theme. Kept deliberately simple (no import from theme-store.ts, which
+ * can't run yet) and in sync with that file's own `readStoredTheme`/
+ * `applyTheme` by hand.
+ */
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");var dark=s==="dark"||(s!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(dark)document.documentElement.classList.add("dark");}catch(e){}})();`;
+
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en">
 			<head>
 				<HeadContent />
+				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, author-controlled script with no user input — see THEME_INIT_SCRIPT's own comment for why it must be inline */}
+				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 			</head>
 			<body>
 				<TooltipProvider>{children}</TooltipProvider>

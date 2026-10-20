@@ -25,7 +25,6 @@ import {
 	SidebarFooter,
 	SidebarGroup,
 	SidebarGroupContent,
-	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
 	SidebarMenuButton,
@@ -53,11 +52,10 @@ const navMain = [
 /** Routes only an admin may open; the pages behind them reject leaders. */
 const navAdmin = [{ title: "Users", to: "/users", icon: ShieldCheck }] as const;
 
-/**
- * The rest of the product per the spec. Rendered disabled rather than as links,
- * so the shape of the app is visible without any nav item 404-ing.
- */
-const navPlanned = [{ title: "Settings", icon: Settings }] as const;
+/** Every signed-in account's own page — profile, password, theme. */
+const navFooter = [
+	{ title: "Settings", to: "/settings", icon: Settings },
+] as const;
 
 export function AppSidebar({
 	user,
@@ -227,29 +225,21 @@ export function AppSidebar({
 						</SidebarMenu>
 					</SidebarGroupContent>
 				</SidebarGroup>
-
-				<SidebarGroup>
-					<SidebarGroupLabel>Not built yet</SidebarGroupLabel>
-					<SidebarGroupContent>
-						<SidebarMenu>
-							{navPlanned.map((item) => (
-								<SidebarMenuItem key={item.title}>
-									<SidebarMenuButton
-										disabled
-										tooltip={`${item.title} — not built yet`}
-										className="cursor-not-allowed opacity-50"
-									>
-										<item.icon />
-										<span>{item.title}</span>
-									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
-						</SidebarMenu>
-					</SidebarGroupContent>
-				</SidebarGroup>
 			</SidebarContent>
 
 			<SidebarFooter>
+				<SidebarMenu>
+					{navFooter.map((item) => (
+						<SidebarMenuItem key={item.title}>
+							<SidebarMenuButton asChild tooltip={item.title}>
+								<Link to={item.to} activeProps={{ "data-active": true }}>
+									<item.icon />
+									<span>{item.title}</span>
+								</Link>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					))}
+				</SidebarMenu>
 				<NavUser user={user} />
 			</SidebarFooter>
 		</Sidebar>
