@@ -26,24 +26,34 @@ export type IntakeBackfillPatch = Partial<{
 }>;
 
 /**
- * What a repeat form submission should change on a member it matched:
- * only the fields the member row doesn't have an answer for yet. A second
- * submission — a correction, a resend, the member filling in more of the
- * form the second time round — must never clobber data that's already
- * there, including with blanks; `name` isn't part of this at all, since it's
- * required on the row and therefore never "missing".
+ * What a repeat form submission should change on a member it matched — any
+ * field where the new answer differs from what's on file, not just the ones
+ * that were still blank. This is deliberately a real update, not just a
+ * backfill: someone with no login still needs a way to correct their own
+ * details (a new phone number, a residence change, finishing a field they
+ * left blank the first time), and resubmitting the form is that way. A
+ * blank incoming answer is never applied — the form has no "clear this
+ * field" affordance, so a blank means "didn't answer this time", not
+ * "delete the old value". `name` isn't part of this at all; it's required
+ * on the row and also what the next submission's own fuzzy match leans on,
+ * so letting it drift on every resubmission risks a person failing to match
+ * their own prior record.
  *
- * `email` is included here so that a member matched some other way (phone,
- * or a fuzzy name match resolved by an admin) gets their first real email
- * recorded, becoming eligible for the faster, more precise email match on
- * their next submission — see `matchPerson` in `@/lib/person-matching.ts`.
+ * `leaderId` is the one field that stays backfill-only even though
+ * everything else now overwrites on a difference: reassigning who leads
+ * someone is an admin-only action everywhere else in the app
+ * (`update-member-profile`'s guard), and this webhook has no session to
+ * check that against. A resubmission can fill in a leader that's missing,
+ * never silently swap one that's already set — a prospective member typing
+ * a different name here could otherwise detach someone from their real
+ * leader with no admin in the loop at all.
  *
- * `resolvedLeaderId` is not part of `incoming` — unlike every other field, it
- * isn't parsed straight from the payload, it comes from matching the
- * submitted "connect leader" text against everyone on file (see
- * `matchLeaderByName`), including the self-reference and cycle checks only
- * the caller can do with a database in hand. This function only ever asks
- * "is the existing row missing one", never "is this one safe to assign".
+ * `resolvedLeaderId` is not part of `incoming` for the same reason as
+ * always — unlike every other field, it isn't parsed straight from the
+ * payload, it comes from matching the submitted "connect leader" text
+ * against everyone on file (see `matchLeaderByName`), including the
+ * self-reference and cycle checks only the caller can do with a database in
+ * hand.
  */
 export function buildIntakeBackfillPatch(
 	existing: ExistingMemberFields,
@@ -52,30 +62,39 @@ export function buildIntakeBackfillPatch(
 ): IntakeBackfillPatch {
 	const patch: IntakeBackfillPatch = {};
 
-	if (existing.email === null && incoming.email !== null) {
+	if (incoming.email !== null && incoming.email !== existing.email) {
 		patch.email = incoming.email;
 	}
-	if (existing.phone === null && incoming.phone !== null) {
+	if (incoming.phone !== null && incoming.phone !== existing.phone) {
 		patch.phone = incoming.phone;
 	}
-	if (existing.gender === null && incoming.gender !== null) {
+	if (incoming.gender !== null && incoming.gender !== existing.gender) {
 		patch.gender = incoming.gender;
 	}
-	if (existing.residence === null && incoming.residence !== null) {
+	if (
+		incoming.residence !== null &&
+		incoming.residence !== existing.residence
+	) {
 		patch.residence = incoming.residence;
 	}
-	if (existing.fieldOfStudy === null && incoming.fieldOfStudy !== null) {
+	if (
+		incoming.fieldOfStudy !== null &&
+		incoming.fieldOfStudy !== existing.fieldOfStudy
+	) {
 		patch.fieldOfStudy = incoming.fieldOfStudy;
 	}
-	if (existing.yearOfStudy === null && incoming.yearOfStudy !== null) {
+	if (
+		incoming.yearOfStudy !== null &&
+		incoming.yearOfStudy !== existing.yearOfStudy
+	) {
 		patch.yearOfStudy = incoming.yearOfStudy;
 	}
-	if (existing.ministry === null && incoming.ministry !== null) {
+	if (incoming.ministry !== null && incoming.ministry !== existing.ministry) {
 		patch.ministry = incoming.ministry;
 	}
 	// areaGroup is required on the incoming payload — never null — so the only
-	// question is whether the existing row already has one.
-	if (existing.areaGroup === null) {
+	// question is whether it differs from what's on file.
+	if (incoming.areaGroup !== existing.areaGroup) {
 		patch.areaGroup = incoming.areaGroup;
 	}
 	if (existing.leaderId === null && resolvedLeaderId !== null) {

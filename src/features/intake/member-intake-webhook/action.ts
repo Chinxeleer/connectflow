@@ -36,9 +36,9 @@ export async function handleMemberIntakeWebhook(
 					status: 200,
 					body: { status: "updated", memberId: result.memberId },
 					reason:
-						result.backfilledFields.length > 0
-							? `matched and updated member ${result.memberId}, backfilled: ${result.backfilledFields.join(", ")}`
-							: `matched member ${result.memberId}, nothing missing to backfill`,
+						result.updatedFields.length > 0
+							? `matched and updated member ${result.memberId}: ${result.updatedFields.join(", ")}`
+							: `matched member ${result.memberId}, nothing changed`,
 					memberId: result.memberId,
 				};
 			}

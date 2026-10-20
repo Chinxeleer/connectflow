@@ -63,25 +63,34 @@ describe("buildIntakeBackfillPatch", () => {
 		});
 	});
 
-	it("changes nothing when every field is already set, even to different values", () => {
+	it("updates every field that differs, even when the existing row already has a value — a resubmission is a real correction, not just a backfill", () => {
 		expect(buildIntakeBackfillPatch(fullExisting, incoming, LEADER_ID)).toEqual(
-			{},
+			{
+				email: "ada@example.com",
+				phone: "0711111111",
+				gender: "male",
+				residence: "Hall 5",
+				fieldOfStudy: "Literature",
+				yearOfStudy: "year_3",
+				ministry: "hosting",
+				areaGroup: "parktown_east",
+				// leaderId is absent: it stays backfill-only, see below.
+			},
 		);
 	});
 
-	it("fills in only the fields that are missing, leaving the rest alone", () => {
-		const existing: ExistingMemberFields = {
+	it("leaves a field out of the patch when the incoming value is identical to what's on file", () => {
+		const sameAsIncoming: ExistingMemberFields = {
 			...fullExisting,
-			residence: null,
-			areaGroup: null,
-			yearOfStudy: null,
+			residence: "Hall 5",
+			yearOfStudy: "year_3",
 		};
 
-		expect(buildIntakeBackfillPatch(existing, incoming, LEADER_ID)).toEqual({
-			residence: "Hall 5",
-			areaGroup: "parktown_east",
-			yearOfStudy: "year_3",
-		});
+		const patch = buildIntakeBackfillPatch(sameAsIncoming, incoming, LEADER_ID);
+		expect(patch).not.toHaveProperty("residence");
+		expect(patch).not.toHaveProperty("yearOfStudy");
+		// Everything else still differs and is still updated.
+		expect(patch).toMatchObject({ email: "ada@example.com" });
 	});
 
 	it("never touches phone/gender/residence/fieldOfStudy/yearOfStudy/ministry when the incoming value is null", () => {
@@ -104,29 +113,29 @@ describe("buildIntakeBackfillPatch", () => {
 		});
 	});
 
-	it("fills yearOfStudy only when missing, same as fieldOfStudy", () => {
+	it("updates yearOfStudy when it differs, same as fieldOfStudy", () => {
 		const existing: ExistingMemberFields = {
 			...fullExisting,
-			yearOfStudy: null,
+			yearOfStudy: "year_1",
 		};
 
-		expect(buildIntakeBackfillPatch(existing, incoming, LEADER_ID)).toEqual({
-			yearOfStudy: "year_3",
-		});
+		expect(
+			buildIntakeBackfillPatch(existing, incoming, LEADER_ID),
+		).toMatchObject({ yearOfStudy: "year_3" });
 	});
 
-	it("fills ministry only when missing, same as yearOfStudy", () => {
+	it("updates ministry when it differs, same as yearOfStudy", () => {
 		const existing: ExistingMemberFields = {
 			...fullExisting,
-			ministry: null,
+			ministry: "band",
 		};
 
-		expect(buildIntakeBackfillPatch(existing, incoming, LEADER_ID)).toEqual({
-			ministry: "hosting",
-		});
+		expect(
+			buildIntakeBackfillPatch(existing, incoming, LEADER_ID),
+		).toMatchObject({ ministry: "hosting" });
 	});
 
-	it("fills email only when the member had none — never overwrites an existing one", () => {
+	it("updates email when it differs from what's on file", () => {
 		expect(
 			buildIntakeBackfillPatch(
 				{ ...emptyExisting, email: null },
@@ -137,7 +146,7 @@ describe("buildIntakeBackfillPatch", () => {
 
 		expect(
 			buildIntakeBackfillPatch(fullExisting, incoming, LEADER_ID),
-		).not.toHaveProperty("email");
+		).toMatchObject({ email: "ada@example.com" });
 	});
 
 	it("never touches email when the incoming submission didn't give one", () => {
@@ -147,18 +156,21 @@ describe("buildIntakeBackfillPatch", () => {
 		).not.toHaveProperty("email");
 	});
 
-	it("does not include name — that's never backfilled here", () => {
+	it("does not include name — that's never part of this at all", () => {
 		const patch = buildIntakeBackfillPatch(emptyExisting, incoming, LEADER_ID);
 		expect(patch).not.toHaveProperty("name");
 	});
 
-	it("fills leaderId only when the existing row has none", () => {
+	it("fills leaderId only when the existing row has none — never reassigns one that's already set", () => {
 		expect(
 			buildIntakeBackfillPatch(emptyExisting, incoming, LEADER_ID),
 		).toMatchObject({ leaderId: LEADER_ID });
 
+		// fullExisting already has LEADER_ID; resolving to a *different* id must
+		// still never overwrite it — leader reassignment stays admin-only.
+		const differentLeaderId = "22222222-2222-4222-8222-222222222222";
 		expect(
-			buildIntakeBackfillPatch(fullExisting, incoming, LEADER_ID),
+			buildIntakeBackfillPatch(fullExisting, incoming, differentLeaderId),
 		).not.toHaveProperty("leaderId");
 	});
 

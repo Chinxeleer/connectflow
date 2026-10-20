@@ -126,13 +126,54 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			expect(result.outcome).toBe("updated");
 			if (result.outcome !== "updated") throw new Error("unreachable");
 			expect(result.memberId).toBe(existing.id);
-			expect(result.backfilledFields).toContain("residence");
+			expect(result.updatedFields).toContain("residence");
 
 			const [after] = await db
 				.select({ residence: members.residence })
 				.from(members)
 				.where(eq(members.id, existing.id));
 			expect(after?.residence).toBe("Hall 3");
+		});
+
+		it("updates a field that already has a value, when the resubmission disagrees with it", async () => {
+			const email = `${TAG}.update@example.com`;
+			const [existing] = await db
+				.insert(members)
+				.values({
+					name: `${named("Update")} Member`,
+					email,
+					residence: "Hall 1",
+					fieldOfStudy: "Physics",
+				})
+				.returning({ id: members.id });
+			if (!existing) throw new Error("setup failed");
+			createdMemberIds.push(existing.id);
+
+			const values = baseValues({
+				firstName: named("Update"),
+				surname: "Member",
+				email,
+				residence: "Hall 9",
+				fieldOfStudy: "Physics",
+			});
+
+			const result = await upsertMemberFromIntake(values, { source: "test" });
+			expect(result.outcome).toBe("updated");
+			if (result.outcome !== "updated") throw new Error("unreachable");
+			// residence changed, so it's reported and applied; fieldOfStudy
+			// didn't, so it's left out of both.
+			expect(result.updatedFields).toContain("residence");
+			expect(result.updatedFields).not.toContain("fieldOfStudy");
+
+			const [after] = await db
+				.select({
+					residence: members.residence,
+					fieldOfStudy: members.fieldOfStudy,
+				})
+				.from(members)
+				.where(eq(members.id, existing.id));
+			expect(after?.residence).toBe("Hall 9");
+			expect(after?.fieldOfStudy).toBe("Physics");
 		});
 
 		it("auto-applies a name-only match to the one person it resembles", async () => {
@@ -307,7 +348,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			});
 			expect(result.outcome).toBe("updated");
 			if (result.outcome !== "updated") throw new Error("unreachable");
-			expect(result.backfilledFields).toContain("leaderId");
+			expect(result.updatedFields).toContain("leaderId");
 
 			const [after] = await db
 				.select({ leaderId: members.leaderId })
@@ -353,7 +394,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			});
 			expect(result.outcome).toBe("updated");
 			if (result.outcome !== "updated") throw new Error("unreachable");
-			expect(result.backfilledFields).not.toContain("leaderId");
+			expect(result.updatedFields).not.toContain("leaderId");
 
 			const [after] = await db
 				.select({ leaderId: members.leaderId })
@@ -383,7 +424,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			});
 			expect(result.outcome).toBe("updated");
 			if (result.outcome !== "updated") throw new Error("unreachable");
-			expect(result.backfilledFields).not.toContain("leaderId");
+			expect(result.updatedFields).not.toContain("leaderId");
 
 			const [after] = await db
 				.select({ leaderId: members.leaderId })
@@ -420,7 +461,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
 			});
 			expect(result.outcome).toBe("updated");
 			if (result.outcome !== "updated") throw new Error("unreachable");
-			expect(result.backfilledFields).not.toContain("leaderId");
+			expect(result.updatedFields).not.toContain("leaderId");
 
 			const [after] = await db
 				.select({ leaderId: members.leaderId })

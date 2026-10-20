@@ -21,7 +21,7 @@ import type { MemberIntakeValues } from "./schema.ts";
 
 export type MemberIntakeResult =
 	| { outcome: "created"; memberId: string }
-	| { outcome: "updated"; memberId: string; backfilledFields: string[] }
+	| { outcome: "updated"; memberId: string; updatedFields: string[] }
 	| {
 			outcome: "needs_review";
 			reconciliationId: string;
@@ -63,12 +63,15 @@ async function selectMatchCandidates(): Promise<MatchCandidatePerson[]> {
 }
 
 /**
- * Creates a member, backfills one that `matchPerson` confidently identified,
- * or — when it can't confidently decide — stages an `intake_reconciliations`
- * row with every candidate it found and touches no person record at all.
- * That last branch is the key change from the matching this replaced: an
- * ambiguous or uncorroborated submission used to get resolved one way or the
- * other automatically; now a human decides.
+ * Creates a member, updates one that `matchPerson` confidently identified —
+ * any field where the new submission differs from what's on file, not only
+ * the blank ones, so a prospective member with no login can still correct
+ * their own details by resubmitting the form — or, when it can't
+ * confidently decide, stages an `intake_reconciliations` row with every
+ * candidate it found and touches no person record at all. That last branch
+ * is the key change from the matching this replaced: an ambiguous or
+ * uncorroborated submission used to get resolved one way or the other
+ * automatically; now a human decides.
  */
 export async function upsertMemberFromIntake(
 	values: MemberIntakeValues,
@@ -136,13 +139,13 @@ export async function upsertMemberFromIntake(
 			values,
 			safeLeaderId,
 		);
-		const backfilledFields = Object.keys(patch);
+		const updatedFields = Object.keys(patch);
 
-		if (backfilledFields.length > 0) {
+		if (updatedFields.length > 0) {
 			await db.update(members).set(patch).where(eq(members.id, existing.id));
 		}
 
-		return { outcome: "updated", memberId: existing.id, backfilledFields };
+		return { outcome: "updated", memberId: existing.id, updatedFields };
 	}
 
 	// NEEDS_REVIEW — stage it, touch nothing.
