@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { user } from "@/db/schema/auth.ts";
 import { members } from "@/db/schema/members.ts";
+import { getAppUrl } from "@/lib/app.ts";
 import { auth } from "@/lib/auth.ts";
 import { renderEmailLayout, sendEmail } from "@/lib/email-client.ts";
 import { generateTemporaryPassword } from "@/lib/password.ts";
@@ -65,6 +66,7 @@ export const resetMemberPassword = createServerFn({ method: "POST" })
 						<p><strong>Temporary password:</strong> ${temporaryPassword}</p>
 						<p>If this wasn't expected, let an admin know.</p>
 					`,
+					action: { label: "Sign in", url: getAppUrl() },
 				}),
 			});
 		} catch (error) {

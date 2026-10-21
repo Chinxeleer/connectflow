@@ -1,4 +1,4 @@
-import { APP_NAME } from "./app.ts";
+import { APP_NAME, getAppUrl } from "./app.ts";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
@@ -47,9 +47,14 @@ export async function sendEmail({
 }
 
 /**
- * Consistent, minimal branded wrapper — a heading, a body, and an optional
- * button-styled link — shared by every email this app sends, so a new
- * notification doesn't mean a new template from scratch.
+ * Consistent, minimal branded wrapper — a banner with the app's own
+ * wordmark, a heading, a body, and an optional button-styled link — shared
+ * by every email this app sends, so a new notification doesn't mean a new
+ * template from scratch. The banner image is referenced by absolute URL
+ * (`getAppUrl()` + the public asset path), not a relative one or an inline
+ * `data:` URI — email clients load images as a plain HTTP request with no
+ * notion of "relative to the app", and most strip embedded SVG/data URIs
+ * outright.
  */
 export function renderEmailLayout({
 	heading,
@@ -61,17 +66,24 @@ export function renderEmailLayout({
 	action?: { label: string; url: string };
 }): string {
 	return `
-		<div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; color: #18181b;">
-			<p style="font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #71717a; margin: 0 0 24px;">${APP_NAME}</p>
-			<h1 style="font-size: 20px; font-weight: 600; margin: 0 0 16px;">${heading}</h1>
-			<div style="font-size: 14px; line-height: 1.6; color: #3f3f46;">${bodyHtml}</div>
-			${
-				action
-					? `<p style="margin: 24px 0 0;">
-							<a href="${action.url}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500; padding: 10px 20px; border-radius: 6px;">${action.label}</a>
-						</p>`
-					: ""
-			}
+		<div style="font-family: -apple-system, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #18181b;">
+			<img
+				src="${getAppUrl()}/banner-logo.png"
+				alt="${APP_NAME}"
+				width="420"
+				style="display: block; width: 100%; max-width: 420px; height: auto; margin: 0 auto;"
+			/>
+			<div style="padding: 32px 24px;">
+				<h1 style="font-size: 20px; font-weight: 600; margin: 0 0 16px;">${heading}</h1>
+				<div style="font-size: 14px; line-height: 1.6; color: #3f3f46;">${bodyHtml}</div>
+				${
+					action
+						? `<p style="margin: 24px 0 0;">
+								<a href="${action.url}" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500; padding: 10px 20px; border-radius: 6px;">${action.label}</a>
+							</p>`
+						: ""
+				}
+			</div>
 		</div>
 	`;
 }

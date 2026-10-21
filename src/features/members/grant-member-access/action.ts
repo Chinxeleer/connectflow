@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest, getRequestUrl } from "@tanstack/react-start/server";
+import { getRequest } from "@tanstack/react-start/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db/index.ts";
 import { members } from "@/db/schema/members.ts";
+import { getAppUrl } from "@/lib/app.ts";
 import { auth } from "@/lib/auth.ts";
 import { renderEmailLayout, sendEmail } from "@/lib/email-client.ts";
 import { generateTemporaryPassword } from "@/lib/password.ts";
@@ -33,12 +34,10 @@ export async function grantAccessCore({
 	memberId,
 	email,
 	headers,
-	loginUrl,
 }: {
 	memberId: string;
 	email: string;
 	headers: Headers;
-	loginUrl: string;
 }): Promise<GrantAccessResult> {
 	const [existing] = await db
 		.select({ id: members.id, name: members.name, userId: members.userId })
@@ -92,7 +91,7 @@ export async function grantAccessCore({
 					<strong>Temporary password:</strong> ${temporaryPassword}</p>
 					<p>Use "Forgot your password?" on the login page any time to set your own.</p>
 				`,
-				action: { label: "Sign in", url: loginUrl },
+				action: { label: "Sign in", url: getAppUrl() },
 			}),
 		});
 	} catch (error) {
@@ -119,6 +118,5 @@ export const grantMemberAccess = createServerFn({ method: "POST" })
 			memberId: data.memberId,
 			email: data.email,
 			headers,
-			loginUrl: getRequestUrl().origin,
 		});
 	});

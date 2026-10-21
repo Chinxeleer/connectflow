@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest, getRequestUrl } from "@tanstack/react-start/server";
+import { getRequest } from "@tanstack/react-start/server";
 import { grantAccessCore } from "@/features/members/grant-member-access/index.ts";
 import { resolveMemberScope } from "@/features/members/scope.ts";
 import { auth } from "@/lib/auth.ts";
@@ -27,7 +27,6 @@ export const grantAccessToAllLeaders = createServerFn({
 	const scope = await resolveMemberScope(session?.user);
 
 	const candidates = await selectLeadersWithoutAccess(scope);
-	const loginUrl = getRequestUrl().origin;
 
 	const granted: BulkGrantAccessResult["granted"] = [];
 	const failed: BulkGrantAccessResult["failed"] = [];
@@ -39,7 +38,6 @@ export const grantAccessToAllLeaders = createServerFn({
 				memberId: candidate.id,
 				email: candidate.email,
 				headers,
-				loginUrl,
 			});
 			granted.push({ name: result.name, email: result.email });
 		} catch (error) {
