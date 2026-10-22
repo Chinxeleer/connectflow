@@ -34,6 +34,7 @@ import {
 	TableRow,
 } from "@/components/ui/table.tsx";
 import { ChangeRoleButton } from "@/features/users/set-user-role/index.ts";
+import { isProtectedAdmin } from "@/lib/protected-accounts.ts";
 import { usersQueryOptions } from "./action.ts";
 import type { UserListRow } from "./query.ts";
 
@@ -108,18 +109,29 @@ function buildColumns(
 		{
 			id: "actions",
 			header: "Actions",
-			cell: ({ row }) =>
-				row.original.id === currentUserId ? (
-					<span className="text-muted-foreground text-xs italic">
-						This is you
-					</span>
-				) : (
+			cell: ({ row }) => {
+				if (row.original.id === currentUserId) {
+					return (
+						<span className="text-muted-foreground text-xs italic">
+							This is you
+						</span>
+					);
+				}
+				if (isProtectedAdmin(row.original.email)) {
+					return (
+						<span className="text-muted-foreground text-xs italic">
+							Protected
+						</span>
+					);
+				}
+				return (
 					<ChangeRoleButton
 						userId={row.original.id}
 						name={row.original.name}
 						role={row.original.role}
 					/>
-				),
+				);
+			},
 		},
 	];
 }

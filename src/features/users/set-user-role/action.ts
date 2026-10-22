@@ -5,15 +5,19 @@ import { db } from "@/db/index.ts";
 import { user } from "@/db/schema/auth.ts";
 import { auth } from "@/lib/auth.ts";
 import { requireAdmin } from "@/lib/permissions.ts";
+import { isProtectedAdmin } from "@/lib/protected-accounts.ts";
 import { setUserRoleSchema } from "./schema.ts";
 
 /**
  * Promotes a leader to admin, or demotes an admin back to leader — the only
- * two roles that exist. Two guards an admin can't route around from the UI:
- * you can't change your own role (no self-lockout, and no accidentally
- * demoting yourself mid-session), and the last remaining admin can't be
- * demoted at all (there is no recovery path for a system with zero admins —
- * every other admin-granting action requires one already existing).
+ * two roles that exist. Three guards an admin can't route around from the
+ * UI: you can't change your own role (no self-lockout, and no accidentally
+ * demoting yourself mid-session); the last remaining admin can't be demoted
+ * at all (there is no recovery path for a system with zero admins — every
+ * other admin-granting action already requires one existing); and an
+ * account listed in `protected-accounts.ts` can never be demoted, even
+ * while other admins exist — a fixed floor under the "last admin" guard's
+ * moving target.
  */
 export const setUserRole = createServerFn({ method: "POST" })
 	.validator(setUserRoleSchema)
@@ -27,12 +31,16 @@ export const setUserRole = createServerFn({ method: "POST" })
 		}
 
 		const [target] = await db
-			.select({ role: user.role })
+			.select({ role: user.role, email: user.email })
 			.from(user)
 			.where(eq(user.id, data.userId));
 
 		if (!target) {
 			throw new Error("That account no longer exists.");
+		}
+
+		if (data.role === "leader" && isProtectedAdmin(target.email)) {
+			throw new Error("This account can't be demoted.");
 		}
 
 		if (target.role === "admin" && data.role === "leader") {
