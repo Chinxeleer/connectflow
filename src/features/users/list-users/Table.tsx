@@ -33,6 +33,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table.tsx";
+import { ChangeRoleButton } from "@/features/users/set-user-role/index.ts";
 import { usersQueryOptions } from "./action.ts";
 import type { UserListRow } from "./query.ts";
 
@@ -62,44 +63,68 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", {
 	year: "numeric",
 });
 
-const columns: ColumnDef<typeof features, UserListRow>[] = [
-	{
-		accessorKey: "name",
-		header: "Name",
-		sortFn: "text",
-		cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
-	},
-	{
-		accessorKey: "email",
-		header: "Email",
-		sortFn: "text",
-		cell: ({ row }) => (
-			<span className="text-muted-foreground">{row.original.email}</span>
-		),
-	},
-	{
-		accessorKey: "role",
-		header: "Role",
-		sortFn: "text",
-		cell: ({ row }) => (
-			<Badge variant={row.original.role === "admin" ? "default" : "secondary"}>
-				{row.original.role}
-			</Badge>
-		),
-	},
-	{
-		accessorKey: "createdAt",
-		header: "Added",
-		sortFn: "datetime",
-		cell: ({ row }) => (
-			<span className="text-muted-foreground tabular-nums">
-				{dateFormat.format(new Date(row.original.createdAt))}
-			</span>
-		),
-	},
-];
+function buildColumns(
+	currentUserId: string,
+): ColumnDef<typeof features, UserListRow>[] {
+	return [
+		{
+			accessorKey: "name",
+			header: "Name",
+			sortFn: "text",
+			cell: ({ row }) => (
+				<span className="font-medium">{row.original.name}</span>
+			),
+		},
+		{
+			accessorKey: "email",
+			header: "Email",
+			sortFn: "text",
+			cell: ({ row }) => (
+				<span className="text-muted-foreground">{row.original.email}</span>
+			),
+		},
+		{
+			accessorKey: "role",
+			header: "Role",
+			sortFn: "text",
+			cell: ({ row }) => (
+				<Badge
+					variant={row.original.role === "admin" ? "default" : "secondary"}
+				>
+					{row.original.role}
+				</Badge>
+			),
+		},
+		{
+			accessorKey: "createdAt",
+			header: "Added",
+			sortFn: "datetime",
+			cell: ({ row }) => (
+				<span className="text-muted-foreground tabular-nums">
+					{dateFormat.format(new Date(row.original.createdAt))}
+				</span>
+			),
+		},
+		{
+			id: "actions",
+			header: "Actions",
+			cell: ({ row }) =>
+				row.original.id === currentUserId ? (
+					<span className="text-muted-foreground text-xs italic">
+						This is you
+					</span>
+				) : (
+					<ChangeRoleButton
+						userId={row.original.id}
+						name={row.original.name}
+						role={row.original.role}
+					/>
+				),
+		},
+	];
+}
 
-export function UsersTable() {
+export function UsersTable({ currentUserId }: { currentUserId: string }) {
 	const { data } = useSuspenseQuery(usersQueryOptions);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [globalFilter, setGlobalFilter] = useState("");
@@ -107,6 +132,7 @@ export function UsersTable() {
 		pageIndex: 0,
 		pageSize: DEFAULT_PAGE_SIZE,
 	});
+	const [columns] = useState(() => buildColumns(currentUserId));
 
 	const table = useTable({
 		features,

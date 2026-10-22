@@ -43,6 +43,8 @@ function CardsSkeleton() {
 }
 
 function UsersPage() {
+	const { session } = Route.useRouteContext();
+
 	return (
 		<>
 			<SiteHeader title="Users" actions={<CreateUserDialog />} />
@@ -61,7 +63,7 @@ function UsersPage() {
 								there is no public sign-up.
 							</p>
 							<Suspense fallback={<Skeleton className="h-64 rounded-lg" />}>
-								<UsersTable />
+								<UsersTable currentUserId={session.user.id} />
 							</Suspense>
 						</div>
 					</div>
